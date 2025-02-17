@@ -1,0 +1,1488 @@
+---
+title: "Cleaned script"
+author: "R.Welch"
+date: "2024-11-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+*********************************
+*********************************
+------Script set up------
+
+libraries
+```{r : reading libraries, include= FALSE}
+packages <- c("tidyverse", "readxl", "dplyr", "magrittr", "mixtools", "emmeans", "readr","data.table", "lubridate", "ggplot2", "skimr", "ggstatsplot","summarytools", "knitr", "here", "ggthemes", "Amelia", "tidyr", "naniar", "stringr", "janitor")
+
+lapply(packages, library, character.only = TRUE)
+```
+
+Reading in original data.
+```{r : reading in data}
+all_participants <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/data/CO-ID_202403_NK CaHASE2 CAH 160924.csv", header=T, na.strings= c("", "NA"))
+all_participants$Date...CAH.Longitudinal.Data <- as.Date(all_participants$Date...CAH.Longitudinal.Data, format = "%d/%m/%Y")
+
+participants <- all_participants %>%
+  filter(Date...CAH.Longitudinal.Data > "2022-12-01")
+
+all_medication <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/data/CO-ID_202403_NK CaHASE2_CAH study Meds_extract_19.09.24 (original).csv", header=T, na.strings= c("", "NA"))
+all_medication <- remove_empty(all_medication, c("cols"), cutoff = 1)
+all_medication$assessment_date <- as.Date(all_medication$assessment_date, format = "%d/%m/%Y")
+
+medication <- all_medication %>%
+  filter(assessment_date > "2022-12-01")
+
+all_labs <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/data/CO-ID_202403_NK CaHASE2_CAH study Labs_extract_16.9.24.csv", header=T, na.strings= c("", "NA"))
+all_labs$assessment_date <- as.Date(all_labs$assessment_date, format = "%d/%m/%Y")
+
+labs <- all_labs %>%
+  filter(assessment_date > "2022-12-01")
+
+```
+
+*********************************
+*********************************
+------Removing duplicates------
+
+Making unique identifier for each assessment by combining co-id and assessment date.
+```{r : making new unique identifier}
+participants$coid_assedate <- paste(participants$CO.ID, participants$Date...CAH.Longitudinal.Data, sep = " ")
+```
+
+Checking for any duplicate entries (i.e.: any duplicates in the newly made unique identifier).
+'list of duplicates frame' gives output of duplicate candidates
+```{r : checking for duplicates}
+duplicates <- freq(participants$coid_assedate)
+duplicatesframe <- as.data.frame(duplicates)
+duplicatesframe <- rownames_to_column(duplicatesframe, var="idvisitdate")
+```
+
+Now to remove any non-duplicates in 'duplicatesframe' to show us what the actual duplicates are and how many times they've been duplicated
+```{r : isolating duplicate occurances, include= FALSE}
+duplicatesframe <- duplicatesframe[duplicatesframe$idvisitdate != c("Total", "<NA>"),]
+duplicatesframe <- duplicatesframe[-c(3:6)]
+
+duplicateassessments <- duplicatesframe %>%
+  filter(Freq>1)
+```
+
+Make a new vector to use as list of duplicate entries to remove from participants dataframe and then remove duplicated entries from participants dataframe with a subset.
+Because there's no way of knowing which duplicate entry is the correct one, all duplicates are removed.
+```{r : removing duplicates, include=FALSE}
+idvisitstoremove <- duplicateassessments$idvisitdate
+
+participantsnoduplicates <- subset(participants, !coid_assedate %in% idvisitstoremove)
+
+freqcheck <- as.data.frame(freq(participantsnoduplicates$coid_assedate))
+freqcheck <- rownames_to_column(freqcheck, var="idvisitdate")
+freqcheck <- freqcheck[freqcheck$idvisitdate != c("Total", "<NA>"),]
+# freqcheck
+```
+
+Making a dataframe of the removed duplicate assessment entries
+```{r : removed duplicates}
+toremove <- duplicateassessments$idvisitdate
+removedrecords <- subset(participants, coid_assedate %in% toremove)
+
+write.csv(removedrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/removedrecords.csv", row.names = F)
+```
+
+Because I've removed all duplicate assessment entries, we might have lost participant/s if their only entry is one of these removed duplicates.
+This will show which participants, if any, have been lost.
+We need to split apart the idvisitdate to get the CO.IDs isolated
+```{r : identifying lost participants}
+duplicateassessments$id <- sapply(strsplit(duplicateassessments$idvisitdate," "), `[`, 1)
+duplicateassessments$visitdate<- sapply(strsplit(duplicateassessments$idvisitdate," "), `[`, 2)
+
+toremovelostparticipants <- participantsnoduplicates$CO.ID
+
+lostparticipants <- NA
+lostparticipants <- subset(participants, !CO.ID %in% toremovelostparticipants)
+
+write.csv(lostparticipants, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/lostparticipants.csv", row.names = F)
+```
+
+
+```{r : making participantsnoduplicates}
+idvisitstoremove <- duplicateassessments$idvisitdate
+
+participantsnoduplicates <- subset(participants, !coid_assedate %in% idvisitstoremove)
+
+freqcheck <- as.data.frame(freq(participantsnoduplicates$coid_assedate))
+freqcheck <- rownames_to_column(freqcheck, var="idvisitdate")
+freqcheck <- freqcheck[freqcheck$idvisitdate != c("Total", "<NA>"),]
+```
+
+*********************************
+*********************************
+------Making dataframes------
+Let's start with widening labs dataframe.
+Use pivot_wide to make the currently long data, wide.
+Labs data has a 'key' and a 'value' which is what pivot_wide requires.
+The key and value columns must be the only two things different to each other on each line, so we need to remove any other columns where data differs between rows.
+
+Also, in the output file we want both the numerical and interpretation of each lab test performed, so we need to make two new, wide data frames (one for numerical, one for interpretation) and join them.
+```{r : making labswide, include=FALSE}
+# valuesdrop <- c("result", "date_and_time")
+# labsvalues <- labs[, !names(labs) %in% valuesdrop]
+# labsvalues <- labsvalues %>%
+#   pivot_wider(names_from = "labs_type",
+#               values_from = "value")
+# 
+# interpdrop <- c("value", "date_and_time")
+# labsinterp <- labs[, !names(labs) %in% interpdrop]
+# labsinterp <- labsinterp %>%
+#   pivot_wider(names_from = "labs_type",
+#               values_from = "result")
+# 
+# labswide <- left_join(labsvalues, labsinterp, by = c("CO.ID", "assessment_id", "assessment_date", "Centre.ID"))
+# 
+# names(labswide) <- gsub(x = names(labswide), pattern = ".x",
+#                         replacement = ".value")
+# names(labswide) <- gsub(x = names(labswide), pattern = ".y",
+#                         replacement = ".interpretation")
+# 
+# labsorder <- c("Centre.ID", "CO.ID", "date_of_birth.value", "assessment_id", "assessment_date", "total_testosterone.value", "total_testosterone.interpretation", "sodium.value", "sodium.interpretation", "potassium.value", "potassium.interpretation", "acth.value", "acth.interpretation", "cortisol.value", "cortisol.interpretation", "glucose.value", "glucose.interpretation", "renin.value", "renin.interpretation", "ohp17.value", "ohp17.interpretation", "andostenedione.value", "andostenedione.interpretation", "shbg.value", "shbg.interpretation", "haemoglobin.value", "haemoglobin.interpretation", "haematocrit.value", "haematocrit.interpretation", "lh.value", "lh.interpretation", "fsh.value", "fsh.interpretation", "dheas.value", "dheas.interpretation","oestradiol.value", "oestradiol.interpretation", "progesterone.value", "progesterone.interpretation", "plasma_renin_activi.interpretation.value", "plasma_renin_activi.interpretation.interpretation", "urine_steroids_.interpretation_gcms.value", "urine_steroids_.interpretation_gcms.interpretation", "di.interpretationdrotestosterone.value", "di.interpretationdrotestosterone.interpretation")
+# labswide <- labswide[, labsorder]
+# 
+# labswide[labswide == "NULL"] <- NA
+```
+
+
+*********************************
+*********************************
+------Time frames for all dataframes------
+
+Let's start with participantsnoduplicates frame
+
+```{r : timeframes}
+Today <- Sys.Date()
+visitdateparticipants <- participantsnoduplicates$Date...CAH.Longitudinal.Data 
+visitdateparticipants <- as.Date(visitdateparticipants,
+                                 format = "%d/%m/%Y")
+
+participantsnoduplicates$Date...CAH.Longitudinal.Data <- as.Date(participantsnoduplicates$Date...CAH.Longitudinal.Data, format = "%d/%m/%Y")
+
+participantsnoduplicates$timesincelastvisit <- Today - visitdateparticipants
+```
+
+The data frames from this section will show the sex of patients who have had a visit in a certain time frame.
+In this case, I have written code for splitting time frame into two, one year chunks.
+```{r : sex distribution}
+sexcolumns <- c("Centre.ID", "CO.ID", "Sex.at.birth...Birth", "Date...CAH.Longitudinal.Data", "coid_assedate", "timesincelastvisit")
+sexdataframe <- participantsnoduplicates[, sexcolumns]
+
+overallsex <- as.data.frame(table(participantsnoduplicates$Sex.at.birth...Birth))
+propoverallsex <- as.data.frame(prop.table(table(participantsnoduplicates$Sex.at.birth...Birth)))
+
+overallsex <- left_join(overallsex, propoverallsex,
+                                    by = "Var1")
+
+overallsex <- overallsex %>%
+  rename("Sex at birth" = "Var1",
+         "Frequency" = "Freq.x",
+         "Proportion" = "Freq.y")
+overallsex$Proportion <- round(overallsex$Proportion, digits = 2)
+
+overallsexdistribution <- sexdataframe %>%
+  group_by(Centre.ID) %>%
+  count(Sex.at.birth...Birth) %>%
+  pivot_wider(names_from = Sex.at.birth...Birth,
+              values_from = n)
+
+overallsexdistribution$"% Female" <- (overallsexdistribution$Female / (overallsexdistribution$Male + overallsexdistribution$Female)) * 100
+overallsexdistribution$"% Female" <- round(overallsexdistribution$Female, digits = 2)
+
+overallsexdistribution$"% Male" <- (overallsexdistribution$Male / (overallsexdistribution$Female + overallsexdistribution$Male)) * 100
+overallsexdistribution$"% Male" <- round(overallsexdistribution$Male, digits = 2)
+
+sexdistribution_Dec23_Dec24 <- sexdataframe %>%
+  group_by(Centre.ID) %>%
+  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
+  count(Sex.at.birth...Birth) %>%
+  pivot_wider(names_from = Sex.at.birth...Birth,
+              values_from = n) %>%
+  rename("Female (2023-2024)" = "Female",
+         "Male (2023-2024)" = "Male")
+
+sexdistribution_Dec23_Dec24$"% Female (2023-2024)" <- (sexdistribution_Dec23_Dec24$`Female (2023-2024)` / (sexdistribution_Dec23_Dec24$`Male (2023-2024)` + sexdistribution_Dec23_Dec24$`Female (2023-2024)`)) * 100
+sexdistribution_Dec23_Dec24$"% Female (2023-2024)" <- round(sexdistribution_Dec23_Dec24$`% Female (2023-2024)`, digits = 2)
+
+sexdistribution_Dec23_Dec24$"% Male (2023-2024)" <- (sexdistribution_Dec23_Dec24$`Male (2023-2024)` / (sexdistribution_Dec23_Dec24$`Female (2023-2024)` + sexdistribution_Dec23_Dec24$`Male (2023-2024)`)) * 100
+sexdistribution_Dec23_Dec24$"% Male (2023-2024)" <- round(sexdistribution_Dec23_Dec24$`% Male (2023-2024)`, digits = 2)
+
+sexdistribution_Dec22_Dec23 <- sexdataframe %>%
+  group_by(Centre.ID) %>%
+  filter(Date...CAH.Longitudinal.Data > "2022-12-01" & Date...CAH.Longitudinal.Data < "2023-12-01") %>%
+  count(Sex.at.birth...Birth) %>%
+  pivot_wider(names_from = Sex.at.birth...Birth,
+              values_from = n) %>%
+  rename("Female (2022-2023)" = "Female",
+         "Male (2022-2023)" = "Male")
+
+sexdistribution_Dec22_Dec23$"% Female (2022-2023)" <- (sexdistribution_Dec22_Dec23$`Female (2022-2023)` / (sexdistribution_Dec22_Dec23$`Male (2022-2023)` + sexdistribution_Dec22_Dec23$`Female (2022-2023)`)) * 100
+sexdistribution_Dec22_Dec23$"% Female (2022-2023)" <- round(sexdistribution_Dec22_Dec23$`% Female (2022-2023)`, digits = 2)
+
+sexdistribution_Dec22_Dec23$"% Male (2022-2023)" <- (sexdistribution_Dec22_Dec23$`Male (2022-2023)` / (sexdistribution_Dec22_Dec23$`Female (2022-2023)` + sexdistribution_Dec22_Dec23$`Male (2022-2023)`)) * 100
+sexdistribution_Dec22_Dec23$"% Male (2022-2023)" <- round(sexdistribution_Dec22_Dec23$`% Male (2022-2023)`, digits = 2)
+
+sex <- full_join(sexdistribution_Dec22_Dec23, sexdistribution_Dec23_Dec24, by = "Centre.ID")#
+sex <- sex [order(sex$Centre.ID),]
+
+write.csv(sex, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/sex.csv", row.names = F)
+
+```
+
+
+Let's do the same for visit statistics.
+MADE CHANGES - CHECK! :)
+```{r : visit statistics}
+visitsperparticipant <- participantsnoduplicates %>%
+  group_by(CO.ID) %>%
+  summarise(n=n())
+
+overallvisitsstats <- visitsperparticipant %>%
+  summarise("total number of patients" = n(),
+            meanvisits = mean(n, na.rm = TRUE),
+            medianvisits = median(n, na.rm = TRUE),                                            sdvisits = sd(n, na.rm = TRUE),
+            minvisits = min(n, na.rm = TRUE),
+            maxvisits = max(n, na.rm = TRUE)) %>%
+  round(digits = 2)
+
+overallvisitsstats$total_visits <- sum(visitsperparticipant$n)
+
+visitsperparticipant_2023_2024 <- participantsnoduplicates %>%
+  group_by(CO.ID) %>%
+  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
+  summarise(n=n())
+
+overallvisitsstats_2023_2024 <- visitsperparticipant_2023_2024 %>%
+  summarise("total number of patients" = n(),
+            meanvisits = mean(n, na.rm = TRUE),
+            medianvisits = median(n, na.rm = TRUE),                                            sdvisits = sd(n, na.rm = TRUE),
+            minvisits = min(n, na.rm = TRUE),
+            maxvisits = max(n, na.rm = TRUE)) %>%
+  round(digits = 2)
+
+overallvisitsstats_2023_2024$total_visits <- sum(visitsperparticipant_2023_2024$n)
+
+
+visitsperparticipant_2022_2023 <- participantsnoduplicates %>%
+  group_by(CO.ID) %>%
+  filter(Date...CAH.Longitudinal.Data < "2023-12-01" & Date...CAH.Longitudinal.Data > "2022-12-01") %>%
+  summarise(n=n())
+
+overallvisitsstats_2022_2023 <- visitsperparticipant_2022_2023 %>%
+  summarise("total number of patients" = n(),
+            meanvisits=mean(n, na.rm = TRUE),
+            medianvisits=median(n, na.rm = TRUE),                                            sdvisits=sd(n, na.rm = TRUE),
+            minvisits=min(n, na.rm = TRUE),
+            maxvisits=max(n, na.rm = TRUE)) %>%
+  round(digits = 2)
+
+overallvisitsstats_2022_2023$total_visits <- sum(visitsperparticipant_2022_2023$n)
+
+
+overallvisitspercentre_2023_2024 <- participantsnoduplicates %>%
+  group_by(Centre.ID) %>%
+  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
+  summarise(n = n()) %>%
+  rename("Number of visits (2023-2024)" = "n")
+
+overallvisitspercentre_2022_2023 <- participantsnoduplicates %>%
+  group_by(Centre.ID) %>%
+  filter(Date...CAH.Longitudinal.Data < "2023-12-01" & Date...CAH.Longitudinal.Data > "2022-12-01") %>%
+  summarise(n = n()) %>%
+  rename("Number of visits (2022-2023)" = "n")
+```
+
+Now let's make the required time frames
+```{r : visit time frames}
+visitspercentre_Dec2023_Dec2024 <- participantsnoduplicates %>%
+  group_by(Centre.ID) %>%
+  filter(Date...CAH.Longitudinal.Data > "2023-12-01" & Date...CAH.Longitudinal.Data < "2024-12-01") %>%
+  summarise(n = n()) %>%
+  rename("number_of_patient_visits_Dec2023_Dec2024"= "n")
+
+visitstatspercentre_Dec2023_Dec2024 <- participantsnoduplicates %>%
+  group_by(Centre.ID, CO.ID) %>%
+  filter(Date...CAH.Longitudinal.Data > "2023-12-01" & Date...CAH.Longitudinal.Data < "2024-12-01") %>%
+  summarise(n = n())
+
+visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 %>%
+  summarise(numberpatients =n(),
+            meanvisits=mean(n, na.rm = TRUE),
+            medianvisits=median(n, na.rm = TRUE),                                            sdvisits=sd(n, na.rm = TRUE),
+            minvisits=min(n, na.rm = TRUE),
+            maxvisits=max(n, na.rm = TRUE)) %>%
+  round(digits = 2)
+
+visitstatspercentre_Dec2023_Dec2024 <- full_join(visitstatspercentre_Dec2023_Dec2024, visitspercentre_Dec2023_Dec2024, by = "Centre.ID")
+
+visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024[, c(1,2,8,3,4,5,6,7)]
+visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 %>%
+  rename("number of patients assessed" = "numberpatients",
+         "number of visits" = "number_of_patient_visits_Dec2023_Dec2024")
+
+
+
+visitspercentre_Dec2022_Dec2023 <- participantsnoduplicates %>%
+  group_by(Centre.ID) %>%
+  filter(Date...CAH.Longitudinal.Data > "2022-12-01" & Date...CAH.Longitudinal.Data < "2023-12-01") %>%
+  summarise(n = n()) %>%
+  rename("number_of_patient_visits_Dec2022_Dec2023"= "n")
+
+visitstatspercentre_Dec2022_Dec2023 <- participantsnoduplicates %>%
+  group_by(Centre.ID, CO.ID) %>%
+  filter(Date...CAH.Longitudinal.Data > "2022-12-01" & Date...CAH.Longitudinal.Data < "2023-12-01") %>%
+  summarise(n = n())
+
+visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 %>%
+  summarise(numberpatients =n(),
+            meanvisits=mean(n, na.rm = TRUE),
+            medianvisits=median(n, na.rm = TRUE),                                            sdvisits=sd(n, na.rm = TRUE),
+            minvisits=min(n, na.rm = TRUE),
+            maxvisits=max(n, na.rm = TRUE)) %>%
+  round(digits = 2)
+
+visitstatspercentre_Dec2022_Dec2023 <- full_join(visitstatspercentre_Dec2022_Dec2023, visitspercentre_Dec2022_Dec2023, by = "Centre.ID")
+
+visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023[, c(1,2,8,3,4,5,6,7)]
+visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 %>%
+  rename("number of patients assessed" = "numberpatients",
+         "number of visits" = "number_of_patient_visits_Dec2022_Dec2023")
+
+visitspercentre <- full_join(visitspercentre_Dec2022_Dec2023, visitspercentre_Dec2023_Dec2024, by = "Centre.ID")
+visitspercentre <- visitspercentre [order(visitspercentre$Centre.ID),]
+```
+
+Now, not all centres will have entered data in the time frames of interest, so let's find out which centres (based on Centre.ID) this applies to.
+```{r : centres missing data}
+centreIDs <- as.data.frame(unique(all_participants$Centre.ID))
+centreIDs <- centreIDs %>%
+  rename("Centre.ID" = "unique(all_participants$Centre.ID)")
+
+centres_no_entries <- as.data.frame(anti_join(centreIDs, visitspercentre, by = "Centre.ID"))
+visitspercentre <- full_join(visitspercentre, centres_no_entries, by = "Centre.ID")
+visitspercentre <- visitspercentre [order(visitspercentre$Centre.ID),]
+
+
+centres_no_entries_23_24 <- as.data.frame(anti_join(centreIDs, visitstatspercentre_Dec2023_Dec2024, by = "Centre.ID"))
+
+visitstatspercentre_Dec2023_Dec2024 <- full_join(visitstatspercentre_Dec2023_Dec2024, centres_no_entries_23_24, by = "Centre.ID")
+visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 [order(visitstatspercentre_Dec2023_Dec2024$Centre.ID),]
+
+
+centres_no_entries_22_23 <- as.data.frame(anti_join(centreIDs, visitstatspercentre_Dec2022_Dec2023, by = "Centre.ID"))
+
+visitstatspercentre_Dec2022_Dec2023 <- full_join(visitstatspercentre_Dec2022_Dec2023, centres_no_entries_22_23, by = "Centre.ID")
+visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 [order(visitstatspercentre_Dec2022_Dec2023$Centre.ID),]
+
+# having establised which centres from the full list of 18 have not uploaded data in the time frames of interest, I'll create a new frame with just the 'active' centres in to use in data frames from here onwards.
+centreIDs2022_2024 <- visitspercentre[!with(visitspercentre, is.na(visitspercentre$number_of_patient_visits_Dec2022_Dec2023) & is.na(visitspercentre$number_of_patient_visits_Dec2023_Dec2024)),]
+
+centreIDs2022_2024 <- as.data.frame(unique(centreIDs2022_2024$Centre.ID))
+centreIDs2022_2024 <- centreIDs2022_2024 %>%
+  rename("Centre.ID" = "unique(centreIDs2022_2024$Centre.ID)")
+```
+
+Having established how many patient visits each centre has recorded, let's now look at how many patients each centre has registered.
+For patient numbers for 2022-2023, I am including all patients recruited before Dec2023. For patients 2023-2024, I am including only patients recruited between Dec 2023 and Dec 2024.
+```{r}
+overallpatientspercentre <- participantsnoduplicates %>%
+   group_by(Centre.ID) %>%
+   summarise(n_unique(CO.ID)) %>%
+   as.data.frame() %>%
+   rename("total_number_of_patients" = "n_unique(CO.ID)")
+
+centres_no_patients <- as.data.frame(anti_join(centreIDs, overallpatientspercentre, by = "Centre.ID"))
+overallpatientspercentre <- full_join(overallpatientspercentre, centres_no_patients, by = "Centre.ID")
+overallpatientspercentre <- overallpatientspercentre [order(overallpatientspercentre$Centre.ID),]
+
+patientspercentre_Dec2023_Dec2024 <- participantsnoduplicates %>%
+  group_by(Centre.ID) %>%
+  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
+  summarise(n_distinct(CO.ID)) %>%
+  rename("number_of_patients_Dec2023_Dec2024" = "n_distinct(CO.ID)")
+
+centres_no_patients_23_24 <- as.data.frame(anti_join(centreIDs, patientspercentre_Dec2023_Dec2024, by = "Centre.ID"))
+patientspercentre_Dec2023_Dec2024 <- full_join(patientspercentre_Dec2023_Dec2024, centres_no_patients_23_24, by = "Centre.ID")
+patientspercentre_Dec2023_Dec2024 <- patientspercentre_Dec2023_Dec2024 [order(patientspercentre_Dec2023_Dec2024$Centre.ID),]
+
+
+patientspercentre_Dec2022_Dec2023 <- participantsnoduplicates %>%
+  group_by(Centre.ID) %>%
+  filter(Date...CAH.Longitudinal.Data < "2023-12-01") %>%
+  summarise(n_distinct(CO.ID)) %>%
+  rename("number_of_patients_Dec2022_Dec2023" = "n_distinct(CO.ID)")
+
+centres_no_patients_22_23 <- as.data.frame(anti_join(centreIDs, patientspercentre_Dec2022_Dec2023, by = "Centre.ID"))
+patientspercentre_Dec2022_Dec2023 <- full_join(patientspercentre_Dec2022_Dec2023, centres_no_patients_22_23, by = "Centre.ID")
+patientspercentre_Dec2022_Dec2023 <- patientspercentre_Dec2022_Dec2023 [order(patientspercentre_Dec2022_Dec2023$Centre.ID),]
+
+patientspercentre <- full_join(patientspercentre_Dec2022_Dec2023, patientspercentre_Dec2023_Dec2024, by = "Centre.ID")
+patientspercentre <- full_join(patientspercentre, centres_no_entries, by = "Centre.ID")
+patientspercentre <- patientspercentre [order(patientspercentre$Centre.ID),]
+```
+
+```{r : adding in number of patients registered on I-CAH to visitstats}
+visitstatspercentre_Dec2023_Dec2024 <- full_join(visitstatspercentre_Dec2023_Dec2024, overallpatientspercentre, by = "Centre.ID")
+visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 [, c(1,9,2:8)]
+visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 %>%
+  rename("number of patients on I-CAH" = "total_number_of_patients")
+
+
+visitstatspercentre_Dec2022_Dec2023 <- full_join(visitstatspercentre_Dec2022_Dec2023, overallpatientspercentre, by = "Centre.ID")
+visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 [, c(1,9,2:8)]
+visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 %>%
+  rename("number of patients on I-CAH" = "total_number_of_patients")
+
+
+write.csv(visitstatspercentre_Dec2023_Dec2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/visitstatspercentre_Dec2023_Dec2024.csv", row.names = F)
+write.csv(visitstatspercentre_Dec2022_Dec2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/visitstatspercentre_Dec2022_Dec2023.csv", row.names = F)
+```
+
+
+Then let's look at visit stats for each centre
+```{r}
+centredata <- full_join(patientspercentre, visitspercentre, by = "Centre.ID")
+centredata <- centredata[, c(1,2,4,3,5)]
+
+write.csv(centredata, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/centredata.csv", row.names = F)
+```
+
+Age distribution don't really need to be included in the time split categories so let's just make one data frame showing age distributions of patients for each centre.
+Can add in time frames if needed.
+```{r : age distributions}
+participantsnoduplicates$DOB <- as.Date(participantsnoduplicates$Date.of.birth...Birth, format = "%d/%m/%Y")
+
+participantsnoduplicates$Current_age_years <- as.numeric((Today - participantsnoduplicates$DOB) / 365)
+participantsnoduplicates$Current_age_years <- round(participantsnoduplicates$Current_age_years, digits =  0)
+
+participantsnoduplicates$age_category <- cut(participantsnoduplicates$Current_age_years,
+                         breaks = c(0,10,20,30,40,50,60,70,80,90,100),
+                         labels = c("0-10", "11-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100"))
+
+agesdataframe <- c("Centre.ID", "CO.ID", "age_category")
+agesdataframe <- participantsnoduplicates [, agesdataframe]
+
+agespercentre <- agesdataframe %>%
+  group_by(Centre.ID, age_category) %>%
+  count() %>%
+  pivot_wider(names_from = age_category,
+              values_from = n)
+
+ages <- select(participantsnoduplicates, c("Centre.ID", "CO.ID", "Date...CAH.Longitudinal.Data", "age_category"))
+
+ageframe2022_2023 <- ages %>%
+  filter(Date...CAH.Longitudinal.Data < "2023-12-01" & Date...CAH.Longitudinal.Data > "2022-12-01") %>%
+  group_by(Centre.ID, age_category) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = age_category,
+              values_from = n)
+
+ageframe2023_2024 <- ages %>%
+  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
+  group_by(Centre.ID, age_category) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = age_category,
+              values_from = n)
+
+
+write.csv(ageframe2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/ageframe2022_2023.csv", row.names = F)
+write.csv(ageframe2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/ageframe2023_2024.csv", row.names = F)
+
+# N.B: if an age category is empty here (i.e. no one of that age) then it is omitted from this table
+# need to add empty centres
+# add in proportions - have done this on excel for now.
+```
+```{r : age stats}
+age_stats <- participantsnoduplicates %>%
+  summarise(median_age = median(participantsnoduplicates$Current_age_years),
+            max_age = max(participantsnoduplicates$Current_age_years),
+            min_age = min(participantsnoduplicates$Current_age_years))
+```
+*********************************
+*********************************
+------Medication: cleaning ------
+
+Let's start by cleaning medication data frame (units, typos, standardised doses)
+Create unique identifier of coid_assedate
+```{r : medication data frames}
+medication_clean <- medication
+medication_clean$coid_asse_id <- paste(medication_clean$CO.ID, medication_clean$assessment_id)
+
+# note column is always empty / "NULL", so remove it
+medication_clean <- select(medication_clean, -"note")
+```
+
+Check for typos in medicine
+```{r : clean medicine typos}
+table(medication_clean$medicine)
+
+medication_clean$medicine <-
+  ifelse(medication_clean$medicine == "prednisone",
+         as.character("prednisolone"),
+         as.character(medication_clean$medicine))
+
+
+# check the spelling correction has worked
+table(medication_clean$medicine)
+```
+
+Now let's check what units have been used to see if we need to standardise any...
+Assuming that NULL units are also mg.
+```{r : clean medication units}
+print("Let's see which units have been used:")
+table(medication_clean$unit)
+
+# identify entries which used anomalous units
+units_mcg <- subset(medication_clean, unit == "mcg")
+
+#correct the dose value by /1000 (mcg to mg)
+medication_clean$dose <-
+  ifelse(medication_clean$unit == "mcg",
+         as.numeric(medication_clean$dose) / 1000,
+         as.numeric(medication_clean$dose))
+
+#correct the unit name (also include the NULL units here) - MIGHT WANT TO REMOVE THIS TO ALLOW QUALITY CHECKING LATER - MAYBE SOME ENTRIES INCLUDE MCG VALUES BUT SAY THEY'RE MG...
+medication_clean$unit <-
+  ifelse(medication_clean$unit == "mcg" | medication_clean$unit == "NULL",
+         as.character("mg"),
+         as.character(medication_clean$unit))
+
+#checking that all units are the same (mcg)
+table(medication_clean$unit)
+```
+
+For direct medication comparisons to be useful, we need to convert prednisolone and dexamethasone doses to HC equivalent doses.
+```{r : standardise medication doses}
+prednisoloneratio <- 5
+dexamethasoneratio <- 80
+
+medication_clean$standardised.doses <- 
+  ifelse(medication_clean$medicine == "hydrocortisone", medication$dose, NA)
+
+medication_clean$standardised.doses <- 
+  ifelse(medication_clean$medicine == "prednisolone", (as.numeric(medication_clean$dose) * prednisoloneratio), medication_clean$standardised.doses)
+
+medication_clean$standardised.doses <- 
+  ifelse(medication_clean$medicine == "dexamethasone", (as.numeric(medication_clean$dose) * dexamethasoneratio), medication_clean$standardised.doses)
+```
+
+
+To check that the modified values seem sensible, let's run some basic stats to check for outliers/abnormal values.
+I DON'T REALLY KNOW WHAT ARE SENSIBLE RANGES/VALUES...
+```{r : basic med stats for outliers}
+medication_clean$standardised.doses <- as.numeric(medication_clean$standardised.doses)
+
+# Let's do it first using individual doses
+checkmedstats <- medication_clean %>%
+  group_by(medicine) %>%
+  summarise(mean_dose = mean(standardised.doses, na.rm = TRUE),
+            median_dose = median(standardised.doses, na.rm = TRUE),
+            sd_dose = sd(standardised.doses, na.rm = TRUE),
+            min_dose = min(standardised.doses, na.rm = TRUE),
+            max_dose = max(standardised.doses, na.rm = TRUE)) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+# Now let's do it for total_daily_doses
+medication_clean$dose <- as.numeric(medication_clean$dose)
+
+medperpatient <- medication_clean %>%
+  group_by(assessment_id) %>%
+  summarise(total_standardised_daily_dose = sum(standardised.doses, na.rm = TRUE))
+
+medication_clean <- full_join(medication_clean, medperpatient, by = "assessment_id")
+
+checkdailymedstats <- medication_clean %>%
+  group_by(medicine) %>%
+  summarise(mean_standardised_dose = mean(total_standardised_daily_dose, na.rm = TRUE),
+            median_standardised_dose = median(total_standardised_daily_dose, na.rm = TRUE),
+            sd_standardised_dose = sd(total_standardised_daily_dose, na.rm = TRUE),
+            min_standardised_dose = min(total_standardised_daily_dose, na.rm = TRUE),
+            max_standardised_dose = max(total_standardised_daily_dose, na.rm = TRUE)) %>%
+  mutate_if(is.numeric, ~round(., 2))
+```
+
+```{r : time of medication dose}
+medication_clean$time <-
+  ifelse(medication_clean$time!=0,
+         as.numeric(medication_clean$time),
+         NA)
+
+medication_clean$dose_time_hours <- as.numeric(medication_clean$time / 3600)
+
+# times show up as 8.0 (for 8am), 21.0 (for 9pm) etc. This is useful for subsequent analysis using time :)
+```
+
+
+*****************************
+
+
+*********************************
+*********************************
+------Medication: making meds_wide ------
+
+
+A single patient visit may have more than one entry in the medication frame (multiple entries for multiple doses recorded at the same visit). Therefore, we need to widen the medication frame to put each duplicate visit for a new dose into a single row for a single visit.
+```{r : making meds_wide}
+medication_clean$assessment_entry <-
+  ave(medication_clean$CO.ID,
+      medication_clean$assessment_id,
+      FUN = seq_along)
+
+totalmed_1st_entry <- 
+  medication_clean %>% 
+  filter(assessment_entry==1)
+
+totalmed_2nd_entry <- 
+  medication_clean %>% 
+  filter(assessment_entry==2)
+
+totalmed_3rd_entry <- 
+  medication_clean %>% 
+  filter(assessment_entry==3)
+
+totalmed_4th_entry <- 
+  medication_clean %>% 
+  filter(assessment_entry==4)
+
+totalmed_5th_entry <- 
+  medication_clean %>% 
+  filter(assessment_entry==5)
+
+totalmed_6th_entry <- 
+  medication_clean %>% 
+  filter(assessment_entry==6)
+
+#now we can get rid of the assessment entry column
+# medication$assessment_entry <- NULL
+
+totalmed_1st_entry$assessment_entry <- NULL
+
+totalmed_2nd_entry$assessment_entry <- NULL
+
+totalmed_3rd_entry$assessment_entry <- NULL
+
+totalmed_4th_entry$assessment_entry <- NULL
+
+totalmed_5th_entry$assessment_entry <- NULL
+
+totalmed_6th_entry$assessment_entry <- NULL
+
+#then add the appropriate suffix based on the assessment_entry number to each column in these frames to make them different before joining
+colnames(totalmed_1st_entry) <- 
+  paste(colnames(totalmed_1st_entry), 1, sep="_")
+
+colnames(totalmed_2nd_entry) <- 
+  paste(colnames(totalmed_2nd_entry), 2, sep="_")
+
+colnames(totalmed_3rd_entry) <- 
+  paste(colnames(totalmed_3rd_entry), 3, sep="_")
+
+colnames(totalmed_4th_entry) <- 
+  paste(colnames(totalmed_4th_entry), 4, sep="_")
+
+colnames(totalmed_5th_entry) <- 
+  paste(colnames(totalmed_5th_entry), 5, sep="_")
+
+colnames(totalmed_6th_entry) <- 
+  paste(colnames(totalmed_6th_entry), 6, sep="_")
+
+totalmed_1st_entry <- totalmed_1st_entry %>%
+  rename("CO.ID" = "CO.ID_1",
+         "assessment_id" = "assessment_id_1",
+         "meds_assessment_date" = "assessment_date_1")
+
+totalmed_2nd_entry <- totalmed_2nd_entry %>%
+  rename("CO.ID" = "CO.ID_2",
+         "assessment_id" = "assessment_id_2",
+         "meds_assessment_date" = "assessment_date_2")
+
+totalmed_3rd_entry <- totalmed_3rd_entry %>%
+  rename("CO.ID" = "CO.ID_3",
+         "assessment_id" = "assessment_id_3",
+         "meds_assessment_date" = "assessment_date_3")
+
+totalmed_4th_entry <- totalmed_4th_entry %>%
+  rename("CO.ID" = "CO.ID_4",
+         "assessment_id" = "assessment_id_4",
+         "meds_assessment_date" = "assessment_date_4")
+
+totalmed_5th_entry <- totalmed_5th_entry %>%
+  rename("CO.ID" = "CO.ID_5",
+         "assessment_id" = "assessment_id_5",
+         "meds_assessment_date" = "assessment_date_5")
+
+totalmed_6th_entry <- totalmed_6th_entry %>%
+  rename("CO.ID" = "CO.ID_6",
+         "assessment_id" = "assessment_id_6",
+         "meds_assessment_date" = "assessment_date_6")
+```
+
+```{r : joining widened med frames together}
+meds_wide <- totalmed_1st_entry %>%
+  left_join(totalmed_2nd_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date")) %>%
+  left_join(totalmed_3rd_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date")) %>%
+  left_join(totalmed_4th_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date")) %>%
+  left_join(totalmed_5th_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date")) %>%
+  left_join(totalmed_6th_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date"))
+
+#add in 'total daily dose' from 'medperpatient' to meds_wide
+# totaldailyformedswide <- medperpatient %>%
+#   select(assessment_id, total_standardised_daily_dose)
+  
+meds_wide <- meds_wide %>%
+  left_join(select(medperpatient, assessment_id, total_standardised_daily_dose), by = "assessment_id")
+
+# meds_wide <- left_join(meds_wide, totaldailyformedswide, by = "assessment_id")
+
+dropmedswide <- c("")
+```
+Now we have a single line per visit and all doses in a single row.
+
+Now to add in the number of doses onto 'medperpatient' (couldn't do this earlier because widening meds is what introduces assessment entry numbers)
+```{r}
+medperpatient$number_of_doses <- medication_clean %>%
+  group_by(assessment_id) %>%
+  summarise(max(assessment_entry))
+```
+
+
+*********************************
+*********************************
+------Medication: stats ------
+
+Start with working out how many visits each participant had where medication data was recorded
+```{r : medication entries}
+medicationentries <- medication_clean %>%
+  group_by(assessment_id) %>%
+  summarise(n = n())
+```
+
+```{r : medication stats}
+overallvisitsstats$visitswithmed <- n_unique(meds_wide$assessment_id)
+
+overallvisitsstats$patientswithmed <- n_unique(meds_wide$CO.ID)
+
+write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/overallvisitsstats.csv", row.names = F)
+```
+
+Let's have a look at prescription habits
+```{r : prescriptions - medicines}
+medication_clean$prescribedmedperpatient <- paste(medication_clean$coid_asse_id, medication_clean$medicine)
+  
+medprescriptions <- subset(medication_clean, assessment_entry == 1)
+
+prescriptions <- medprescriptions %>%
+  group_by(Centre.ID, medicine) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = medicine,
+              values_from = n) %>%
+  select(1,2,5,4,3)
+
+prescriptionsnoentries <-  as.data.frame(anti_join(centreIDs2022_2024, prescriptions, by = "Centre.ID"))
+
+prescriptions <- prescriptions %>%
+  full_join(prescriptionsnoentries, prescriptions, by = "Centre.ID")
+prescriptions <- prescriptions [order(prescriptions$Centre.ID),]
+
+write.csv(prescriptions, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prescriptions.csv", row.names = F)
+
+prescriptions_2023_2024 <- medprescriptions %>%
+  group_by(Centre.ID, medicine) %>%
+  filter(assessment_date > "2023-12-01") %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = medicine,
+              values_from = n) %>%
+  select(1,2,5,3,4)
+
+prescriptions_2023_2024 <- prescriptions_2023_2024 %>%
+  full_join(centreIDs2022_2024, prescriptions_2023_2024, by = "Centre.ID")
+prescriptions_2023_2024 <- prescriptions_2023_2024 [order(prescriptions_2023_2024$Centre.ID),]
+write.csv(prescriptions_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prescriptions_2023_2024.csv", row.names = F)
+
+prescriptions_2022_2023 <- medprescriptions %>%
+  group_by(Centre.ID, medicine) %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = medicine,
+              values_from = n) %>%
+  select(1,2,5,4,3)
+
+prescriptions_2022_2023 <- prescriptions_2022_2023 %>%
+  full_join(centreIDs2022_2024, prescriptions_2022_2023, by = "Centre.ID")
+prescriptions_2022_2023 <- prescriptions_2022_2023 [order(prescriptions_2022_2023$Centre.ID),]
+write.csv(prescriptions_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prescriptions_2022_2023.csv", row.names = F)
+
+
+othermeds <- subset(medication_clean, medicine == "other")
+```
+
+```{r : prescriptions - values}
+# let's get stats for each centre for each medicine type
+
+# note here that 'number of prescription records' refers to the number of visits where a single patient was recorded to have been using the particular medicine.
+
+# start with hydro
+
+hydroframe <- subset(medication_clean, medicine == "hydrocortisone")
+
+hydrocortisonestats <- hydroframe %>%
+  group_by(Centre.ID) %>%
+  summarise(number_of_prescription_records = n_unique(coid_asse_id),
+            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+
+
+hydrocortisonestats <- hydrocortisonestats %>%
+  full_join(prescriptionsnoentries, hydrocortisonestats, by = "Centre.ID")
+hydrocortisonestats <- hydrocortisonestats [order(hydrocortisonestats$Centre.ID),]
+
+write.csv(hydrocortisonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/hydrocortisonestats.csv", row.names = F)
+
+# for time periods
+hydrocortisonestats_2023_2024 <- hydroframe %>%
+  group_by(Centre.ID) %>%
+  filter(assessment_date > "2023-12-01") %>%
+  summarise(number_of_prescription_records = n_unique(coid_asse_id),
+            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+hydrocortisonestats_2023_2024 <- hydrocortisonestats_2023_2024 %>%
+  full_join(prescriptionsnoentries, hydrocortisonestats_2023_2024, by = "Centre.ID")
+hydrocortisonestats_2023_2024 <- hydrocortisonestats_2023_2024 [order(hydrocortisonestats_2023_2024$Centre.ID),]
+
+write.csv(hydrocortisonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/hydrocortisonestats_2023_2024.csv", row.names = F)
+
+
+hydrocortisonestats_2022_2023 <- hydroframe %>%
+  group_by(Centre.ID) %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  summarise(number_of_prescription_records = n_unique(coid_asse_id),
+            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+hydrocortisonestats_2022_2023 <- hydrocortisonestats_2022_2023 %>%
+  full_join(prescriptionsnoentries, hydrocortisonestats_2022_2023, by = "Centre.ID")
+hydrocortisonestats_2022_2023 <- hydrocortisonestats_2022_2023 [order(hydrocortisonestats_2022_2023$Centre.ID),]
+
+write.csv(hydrocortisonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/hydrocortisonestats_2022_2023.csv", row.names = F)
+
+
+# now let's do prednisolone
+predframe <- subset(medication_clean, medicine == "prednisolone")
+
+prednisolonestats <- predframe %>%
+  group_by(Centre.ID) %>%
+  summarise(number_of_prescription_records = n_unique(coid_asse_id),
+            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+prednisolonestats <- prednisolonestats %>%
+  full_join(prescriptionsnoentries, prednisolonestats, by = "Centre.ID")
+prednisolonestats <- prednisolonestats [order(prednisolonestats$Centre.ID),]
+
+write.csv(prednisolonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prednisolonestats.csv", row.names = F)
+
+# timeframes
+prednisolonestats_2023_2024 <- predframe %>%
+  group_by(Centre.ID) %>%
+  filter(assessment_date > "2023-12-01") %>%
+  summarise(number_of_prescription_records = n_unique(coid_asse_id),
+            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+prednisolonestats_2023_2024 <- prednisolonestats_2023_2024 %>%
+  full_join(prescriptionsnoentries, prednisolonestats_2023_2024, by = "Centre.ID")
+prednisolonestats_2023_2024 <- prednisolonestats_2023_2024 [order(prednisolonestats_2023_2024$Centre.ID),]
+
+write.csv(prednisolonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prednisolonestats_2023_2024.csv", row.names = F)
+
+
+prednisolonestats_2022_2023 <- predframe %>%
+  group_by(Centre.ID) %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  summarise(number_of_prescription_records = n_unique(coid_asse_id),
+            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+prednisolonestats_2022_2023 <- prednisolonestats_2022_2023 %>%
+  full_join(prescriptionsnoentries, prednisolonestats_2022_2023, by = "Centre.ID")
+prednisolonestats_2022_2023 <- prednisolonestats_2022_2023 [order(prednisolonestats_2022_2023$Centre.ID),]
+
+write.csv(prednisolonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prednisolonestats_2022_2023.csv", row.names = F)
+
+
+# and dexamethasone
+dexframe <- subset(medication_clean, medicine == "dexamethasone")
+
+dexamethasonestats <- dexframe %>%
+  group_by(Centre.ID) %>%
+  summarise(number_of_prescription_records = n_unique(coid_asse_id),
+            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+dexamethasonestats <- dexamethasonestats %>%
+  full_join(prescriptionsnoentries, dexamethasonestats, by = "Centre.ID")
+dexamethasonestats <- dexamethasonestats [order(dexamethasonestats$Centre.ID),]
+
+write.csv(dexamethasonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/dexamethasonestats.csv", row.names = F)
+
+#time frames
+dexamethasonestats_2023_2024 <- dexframe %>%
+  group_by(Centre.ID) %>%
+  filter(assessment_date > "2023-12-01") %>%
+  summarise(number_of_prescription_records = n_unique(coid_asse_id),
+            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+dexamethasonestats_2023_2024 <- dexamethasonestats_2023_2024 %>%
+  full_join(prescriptionsnoentries, dexamethasonestats_2023_2024, by = "Centre.ID")
+dexamethasonestats_2023_2024 <- dexamethasonestats_2023_2024 [order(dexamethasonestats_2023_2024$Centre.ID),]
+
+write.csv(dexamethasonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/dexamethasonestats_2023_2024.csv", row.names = F)
+
+
+dexamethasonestats_2022_2023 <- dexframe %>%
+  group_by(Centre.ID) %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  summarise(number_of_prescription_records = n_unique(coid_asse_id),
+            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+dexamethasonestats_2022_2023 <- dexamethasonestats_2022_2023 %>%
+  full_join(prescriptionsnoentries, dexamethasonestats_2022_2023, by = "Centre.ID")
+dexamethasonestats_2022_2023 <- dexamethasonestats_2022_2023 [order(dexamethasonestats_2022_2023$Centre.ID),]
+
+write.csv(dexamethasonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/dexamethasonestats_2022_2023.csv", row.names = F)
+```
+
+Let's try to work out how many patients are on a single medication or combined.
+Within medtherapy frame, each row shows all medications, recorded in a single visit, taken in a single day by a single patient.
+~ need to be careful when one patient has more than one visit in the same timeframe because each visit will be its own row of data and will be counted as two separate people...
+```{r : medication therapies}
+# make a new data frame with just medicine type
+medtherapy <- select(meds_wide, c("Centre.ID_1", "CO.ID", "assessment_id", "meds_assessment_date", "coid_asse_id_1", "medicine_1", "medicine_2", "medicine_3", "medicine_4", "medicine_5", "medicine_6"))
+
+# need to work out how to make a legit output for seeing how many patients are on multiple medications simletaneously, but for now, this code works. Just count the number of occurances of 8 (multiple medications) vs 7
+
+apply(medtherapy, 1, function(x) length (unique(x)))
+
+# therefore, in this case, there are four 8s which means that 4/112 patients from 2022-2024 are on multiple medications.
+
+medtherapy_2023_2024 <- medtherapy %>%
+  filter(meds_assessment_date > "2023-12-01")
+apply(medtherapy_2023_2024, 1, function(x) length (unique(x)))
+# in 2023_2024, there are three 8s which means that 3/63 patients are on multiple medications (HC & prednisolone)
+
+
+medtherapy_2022_2023 <- medtherapy %>%
+  filter(meds_assessment_date < "2023-12-01" & meds_assessment_date > "2022-12-01")
+apply(medtherapy_2022_2023, 1, function(x) length (unique(x)))
+# in 2022_2023, there is one 8 which means that 1/49 patients are on multiple medications (HC & prednisolone)
+
+
+# https://stackoverflow.com/questions/74737100/how-to-check-if-multiple-columns-are-row-wise-equivalent-ignoring-na-values
+```
+
+
+*********************************
+*********************************
+------Medication: making labs_wide ------
+
+```{r : labs_wide, include=FALSE}
+valuesdrop <- c("result", "date_and_time")
+labsvalues <- labs[, !names(labs) %in% valuesdrop]
+labsvalues <- labsvalues %>%
+  pivot_wider(names_from = "labs_type",
+              values_from = "value")
+
+interpdrop <- c("value", "date_and_time")
+labsinterp <- labs[, !names(labs) %in% interpdrop]
+labsinterp <- labsinterp %>%
+  pivot_wider(names_from = "labs_type",
+              values_from = "result")
+
+labs_wide <- left_join(labsvalues, labsinterp, by = c("CO.ID", "assessment_id", "assessment_date", "Centre.ID"))
+
+names(labs_wide) <- gsub(x = names(labs_wide), pattern = ".x",
+                        replacement = ".value")
+names(labs_wide) <- gsub(x = names(labs_wide), pattern = ".y",
+                        replacement = ".interpretation")
+
+```
+
+Reorder columns so that lab value and interpretation are next to eachother.
+Check which columns are missing and remove so this can work.
+```{r : putting lab values and interps next to eachother}
+# labsorder <- c("Centre.ID", "CO.ID", "date_of_birth.value", "assessment_id", "assessment_date", "total_testosterone.value", "total_testosterone.interpretation", "sodium.value", "sodium.interpretation", "potassium.value", "potassium.interpretation", "acth.value", "acth.interpretation", "cortisol.value", "cortisol.interpretation", "glucose.value", "glucose.interpretation", "renin.value", "renin.interpretation", "ohp17.value", "ohp17.interpretation", "andostenedione.value", "andostenedione.interpretation", "shbg.value", "shbg.interpretation", "haemoglobin.value", "haemoglobin.interpretation", "haematocrit.value", "haematocrit.interpretation", "lh.value", "lh.interpretation", "fsh.value", "fsh.interpretation", "dheas.value", "dheas.interpretation","oestradiol.value", "oestradiol.interpretation", "progesterone.value", "progesterone.interpretation", "plasma_renin_activi.interpretation.value", "plasma_renin_activi.interpretation.interpretation", "urine_steroids_.interpretation_gcms.value", "urine_steroids_.interpretation_gcms.interpretation", "di.interpretationdrotestosterone.value", "di.interpretationdrotestosterone.interpretation")
+# labs_wide <- labs_wide[, labsorder]
+```
+
+
+
+Let's add BMI to labs frame could be added to meds or labs, but for ease I'll add it here to labs :).
+
+Add labs stats onto 'overall visit stats' and make new frames for per centre.
+```{r}
+overallvisitsstats$number_of_labs_entries <- length(labs_wide$CO.ID)
+overallvisitsstats$number_of_lab_patients <- n_unique(labs_wide$CO.ID)
+write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/overallvisitsstats.csv", row.names = F)
+
+labentries2022_2023 <- labs_wide %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  group_by(Centre.ID) %>%
+  summarise("Number of lab entries (2022-2023)" = n())
+
+medentries2022_2023 <- meds_wide %>%
+  filter(meds_assessment_date < "2023-12-01" & meds_assessment_date > "2022-12-01") %>%
+  group_by(Centre.ID_1) %>%
+  summarise("Number of med entries (2022-2023)" = n()) %>%
+  rename("Centre.ID" = "Centre.ID_1")
+  
+overallvisitspercentre_2022_2023 <- full_join(overallvisitspercentre_2022_2023, labentries2022_2023)
+overallvisitspercentre_2022_2023 <- full_join(overallvisitspercentre_2022_2023, medentries2022_2023)
+
+
+labentries2023_2024 <- labs_wide %>%
+  filter(assessment_date > "2023-12-01") %>%
+  group_by(Centre.ID) %>%
+  summarise("Number of lab entries (2023-2024)" = n())
+
+medentries2023_2024 <- meds_wide %>%
+  filter(meds_assessment_date > "2023-12-01") %>%
+  group_by(Centre.ID_1) %>%
+  summarise("Number of med entries (2023-2024)" = n()) %>%
+  rename("Centre.ID" = "Centre.ID_1")
+
+overallvisitspercentre_2023_2024 <- full_join(overallvisitspercentre_2023_2024, labentries2023_2024)
+overallvisitspercentre_2023_2024 <- full_join(overallvisitspercentre_2023_2024, medentries2023_2024)
+
+entryrecords <- full_join(overallvisitspercentre_2022_2023, overallvisitspercentre_2023_2024)
+entryrecords <- entryrecords [order(entryrecords$Centre.ID),]
+
+write.csv(overallvisitspercentre_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/overallvisitspercentre_2022_2023.csv", row.names = F)
+write.csv(overallvisitspercentre_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/overallvisitspercentre_2023_2024.csv", row.names = F)
+write.csv(entryrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/entryrecords.csv", row.names = F)
+```
+
+
+```{r : adding BMI data to labs_wide}
+labs_wide$coid_assedate <- paste(labs_wide$CO.ID, labs_wide$assessment_date)
+labs_wide$BMI <- NULL
+
+ii <- 1
+for (ID in labs_wide$coid_assedate) {
+  BMI <- participantsnoduplicates$BMI...CAH.Longitudinal.Data[participantsnoduplicates$coid_assedate == ID]
+  if(!is_empty(BMI)){
+  labs_wide$BMI [ii] <- BMI}
+  ii <- ii + 1
+}
+```
+
+
+Let's
+```{r : BMI stats, include=FALSE}
+BMIframe <- select(labs_wide, c("Centre.ID", "assessment_date", "coid_assedate", "BMI"))
+
+BMIframe$Class <- ""
+BMIframe$Class [BMIframe$BMI <18.5] <- "Underweight"
+BMIframe$Class [BMIframe$BMI >= 18.5 & BMIframe$BMI <25] <- "Normal"
+BMIframe$Class [BMIframe$BMI >= 25 & BMIframe$BMI <30] <- "Overweight"
+BMIframe$Class [BMIframe$BMI >=30 & BMIframe$BMI <35] <- "Obese"
+BMIframe$Class [BMIframe$BMI >=35] <- "Extremely obese"
+BMIframe$Class[BMIframe$Class == ""] <- "Missing"
+
+BMIstats <- BMIframe %>%
+  group_by(Centre.ID, Class) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = "Class",
+              values_from = "n") %>%
+  select(1,4,5,6,3,2)
+
+BMIstats$total_patients_with_BMI_data <- rowSums(BMIstats [, c(2:5)], na.rm = TRUE)
+
+# time frames
+BMIframe2023_2024 <- BMIframe %>%
+  filter(assessment_date > "2023-12-01")
+
+BMIstats2023_2024 <- BMIframe2023_2024 %>%
+  group_by(Centre.ID, Class) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = "Class",
+              values_from = "n") %>%
+  select(1,4,5,6,3,2)
+
+BMIstats2023_2024$total_patients_with_BMI_data <- BMIframe2023_2024 %>%
+  group_by(Centre.ID) %>%
+  summarise(n = n())
+
+BMI2023_2024_no_entries <- anti_join(centreIDs2022_2024, BMIframe2023_2024, by = "Centre.ID")
+BMIstats2023_2024 <- full_join(BMIstats2023_2024, BMI2023_2024_no_entries, by = "Centre.ID")
+BMIstats2023_2024 <- BMIstats2023_2024 [order(BMIstats2023_2024$Centre.ID),]
+
+write.csv(BMIstats2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/BMIstats2023_2024.csv", row.names = F)
+
+BMIframe2022_2023 <- BMIframe %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01")
+
+BMIstats2022_2023 <- BMIframe2022_2023 %>%
+  group_by(Centre.ID, Class) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = "Class",
+              values_from = "n") %>%
+  select(1,4,3,5,6,2)
+
+BMIstats2022_2023$total_patients_with_BMI_data <- BMIframe2022_2023 %>%
+  group_by(Centre.ID) %>%
+  summarise(n = n())
+
+BMI2022_2023_no_entries <- anti_join(centreIDs2022_2024, BMIframe2022_2023, by = "Centre.ID")
+BMIstats2022_2023 <- full_join(BMIstats2022_2023, BMI2022_2023_no_entries, by = "Centre.ID")
+BMIstats2022_2023 <- BMIstats2022_2023 [order(BMIstats2022_2023$Centre.ID),]
+
+write.csv(BMIstats2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/BMIstats2022_2023.csv", row.names = F)
+```
+
+
+*********************************
+*********************************
+------Biomarkers------
+Now let's look at analysis of biomarkers - 17OHP, andostenedione, and renin.
+Starting with 17OHP
+```{r : 17-OHP, include=FALSE}
+OHPframe <- select(labs_wide, c("Centre.ID", "assessment_id", "assessment_date", "ohp17.value", "ohp17.interpretation"))
+OHPframe <- filter(OHPframe, !ohp17.interpretation == "NULL")
+OHPframe$numericvalue <-as.numeric(str_extract(OHPframe$ohp17.value, "[0-9]+.?[0-9]*+"))
+OHPframe$unit <- (str_extract(OHPframe$ohp17.value, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+"))
+
+OHPframe_2023_2024 <- OHPframe %>%
+  filter(assessment_date > "2023-12-01") %>%
+  group_by(Centre.ID, ohp17.interpretation) %>%
+  summarise(n = n()) %>%
+ pivot_wider(names_from = "ohp17.interpretation",
+             values_from = "n")
+
+OHP2023_2024_no_entries <- anti_join(centreIDs2022_2024, OHPframe_2023_2024, by = "Centre.ID")
+OHPframe_2023_2024 <- full_join(OHP2023_2024_no_entries, OHPframe_2023_2024, by = "Centre.ID")
+OHPframe_2023_2024 <- OHPframe_2023_2024 [order(OHPframe_2023_2024$Centre.ID),]
+
+
+OHPframe_2022_2023 <- OHPframe %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  group_by(Centre.ID, ohp17.interpretation) %>%
+  summarise(n = n()) %>%
+ pivot_wider(names_from = "ohp17.interpretation",
+             values_from = "n")
+
+OHP2022_2023_no_entries <- anti_join(centreIDs2022_2024, OHPframe_2022_2023, by = "Centre.ID")
+OHPframe_2022_2023 <- full_join(OHP2022_2023_no_entries, OHPframe_2022_2023, by = "Centre.ID")
+OHPframe_2022_2023 <- OHPframe_2022_2023 [order(OHPframe_2022_2023$Centre.ID),]
+
+write.csv(OHPframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/OHPframe_2023_2024.csv", row.names = F)
+write.csv(OHPframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/OHPframe_2022_2023.csv", row.names = F)
+```
+
+Now let's do numerical analysis.
+Check units
+```{r : OHP numerical stats}
+#check units, standardise if necessary
+table(OHPframe$unit)
+
+OHP2023_2024stats <- OHPframe %>%
+  filter(assessment_date > "2023-12-01") %>%
+  group_by(Centre.ID) %>%
+  summarise(visits_with_OHP_data = n_unique(assessment_id),
+            mean_value = mean(numericvalue, na.rm = TRUE),
+            median_value = median(numericvalue, na.rm = TRUE),
+            sd_value = sd(numericvalue, na.rm = TRUE),
+            min_value = min(numericvalue, na.rm = TRUE),
+            max_value = max(numericvalue, na.rm = TRUE)) %>%
+  round(., digits = 2)
+OHP2023_2024stats <- full_join(OHP2023_2024_no_entries, OHP2023_2024stats, by = "Centre.ID")
+OHP2023_2024stats <- OHP2023_2024stats [order(OHP2023_2024stats$Centre.ID),]
+
+
+
+OHP2022_2023stats <- OHPframe %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  group_by(Centre.ID) %>%
+  summarise(visits_with_OHP_data = n_unique(assessment_id),
+            mean_value = mean(numericvalue, na.rm = TRUE),
+            median_value = median(numericvalue, na.rm = TRUE),
+            sd_value = sd(numericvalue, na.rm = TRUE),
+            min_value = min(numericvalue, na.rm = TRUE),
+            max_value = max(numericvalue, na.rm = TRUE)) %>%
+  round(., digits = 2)
+OHP2022_2023stats <- full_join(OHP2022_2023_no_entries, OHP2022_2023stats, by = "Centre.ID")
+OHP2022_2023stats <- OHP2022_2023stats [order(OHP2022_2023stats$Centre.ID),]
+
+write.csv(OHP2023_2024stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/OHP2023_2024stats.csv", row.names = F)
+write.csv(OHP2022_2023stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/OHP2022_2023stats.csv", row.names = F)
+```
+
+
+```{r : andostenedione, include=FALSE}
+Andoframe <- select(labs_wide, c("Centre.ID", "assessment_id", "assessment_date", "andostenedione.value", "andostenedione.interpretation"))
+Andoframe <- filter(Andoframe, !andostenedione.interpretation == "NULL")
+Andoframe$numericvalue <-as.numeric(str_extract(Andoframe$andostenedione.value, "[0-9]+.?[0-9]*+"))
+Andoframe$unit <- (str_extract(Andoframe$andostenedione.value, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+"))
+
+Andoframe_2023_2024 <- Andoframe %>%
+  filter(assessment_date > "2023-12-01") %>%
+  group_by(Centre.ID, andostenedione.interpretation) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = andostenedione.interpretation,
+              values_from = n)
+
+Ando2023_2024_no_entries <- anti_join(centreIDs2022_2024, Andoframe_2023_2024, by = "Centre.ID")
+Andoframe_2023_2024 <- full_join(Ando2023_2024_no_entries, Andoframe_2023_2024, by = "Centre.ID")
+Andoframe_2023_2024 <- Andoframe_2023_2024 [order(Andoframe_2023_2024$Centre.ID),]
+
+
+Andoframe_2022_2023 <- Andoframe %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  group_by(Centre.ID, andostenedione.interpretation) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = andostenedione.interpretation,
+              values_from = n) %>%
+  select(1,3,2,4)
+
+Ando2022_2023_no_entries <- anti_join(centreIDs2022_2024, Andoframe_2022_2023, by = "Centre.ID")
+Andoframe_2022_2023 <- full_join(Ando2022_2023_no_entries, Andoframe_2022_2023, by = "Centre.ID")
+Andoframe_2022_2023 <- Andoframe_2022_2023 [order(Andoframe_2022_2023$Centre.ID),]
+
+write.csv(Andoframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Andoframe_2022_2023.csv", row.names = F)
+write.csv(Andoframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Andoframe_2023_2024.csv", row.names = F)
+```
+
+Numerical stats for ando too, now.
+Check units and standardise where necessary.
+```{r : ando numerical stats}
+#check units, standardise if necessary
+table(Andoframe$unit)
+
+Ando2023_2024stats <- Andoframe %>%
+  filter(assessment_date > "2023-12-01") %>%
+  group_by(Centre.ID) %>%
+  summarise(visits_with_ando_data = n_unique(assessment_id),
+            mean_value = mean(numericvalue, na.rm = TRUE),
+            median_value = median(numericvalue, na.rm = TRUE),
+            sd_value = sd(numericvalue, na.rm = TRUE),
+            min_value = min(numericvalue, na.rm = TRUE),
+            max_value = max(numericvalue, na.rm = TRUE)) %>%
+  round(., digits = 2)
+Ando2023_2024stats <- full_join(Ando2023_2024_no_entries, Ando2023_2024stats, by = "Centre.ID")
+Ando2023_2024stats <- Ando2023_2024stats [order(Ando2023_2024stats$Centre.ID),]
+
+
+Ando2022_2023stats <- Andoframe %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  group_by(Centre.ID) %>%
+  summarise(visits_with_OHP_data = n_unique(assessment_id),
+            mean_value = mean(numericvalue, na.rm = TRUE),
+            median_value = median(numericvalue, na.rm = TRUE),
+            sd_value = sd(numericvalue, na.rm = TRUE),
+            min_value = min(numericvalue, na.rm = TRUE),
+            max_value = max(numericvalue, na.rm = TRUE)) %>%
+  round(., digits = 2)
+Ando2022_2023stats <- full_join(Ando2022_2023_no_entries, Ando2022_2023stats, by = "Centre.ID")
+Ando2022_2023stats <- Ando2022_2023stats [order(Ando2022_2023stats$Centre.ID),]
+
+write.csv(Ando2023_2024stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Ando2023_2024stats.csv", row.names = F)
+write.csv(Ando2022_2023stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Ando2022_2023stats.csv", row.names = F)
+```
+
+Now renin.
+If you're doing numerical stats, the raw renin values need to be converted to renin plasma activity. This is done by applying *0.158.
+```{r : renin, include=FALSE}
+Reninframe <- select(labs_wide, c("Centre.ID", "assessment_id", "assessment_date", "renin.value", "renin.interpretation"))
+Reninframe <- filter(Reninframe, !renin.interpretation == "NULL")
+Reninframe$numericvalue <-as.numeric(str_extract(Reninframe$renin.value, "[0-9]+.?[0-9]*+"))
+Reninframe$unit <- (str_extract(Reninframe$renin.value, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+"))
+Reninframe$reninplasmaactivity <- (Reninframe$numericvalue * 0.158)
+Reninframe$reninplasmaactivity <- round(Reninframe$reninplasmaactivity, digits = 2)
+
+Reninframe_2023_2024 <- Reninframe %>%
+  filter(assessment_date > "2023-12-01") %>%
+  group_by(Centre.ID, renin.interpretation) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = renin.interpretation,
+              values_from = n)
+
+Renin2023_2024_no_entries <- anti_join(centreIDs2022_2024, Reninframe_2023_2024, by = "Centre.ID")
+Reninframe_2023_2024 <- full_join(Renin2023_2024_no_entries, Reninframe_2023_2024, by = "Centre.ID")
+Reninframe_2023_2024 <- Reninframe_2023_2024 [order(Reninframe_2023_2024$Centre.ID),]
+
+
+Reninframe_2022_2023 <- Reninframe %>%
+  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+  group_by(Centre.ID, renin.interpretation) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = renin.interpretation,
+              values_from = n)
+
+Renin2022_2023_no_entries <- anti_join(centreIDs2022_2024, Reninframe_2022_2023, by = "Centre.ID")
+Reninframe_2022_2023 <- full_join(Renin2022_2023_no_entries, Reninframe_2022_2023, by = "Centre.ID")
+Reninframe_2022_2023 <- Reninframe_2022_2023 [order(Reninframe_2022_2023$Centre.ID),]
+
+write.csv(Reninframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Reninframe_2022_2023.csv", row.names = F)
+write.csv(Reninframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Reninframe_2023_2024.csv", row.names = F)
+```
+
+Now for renin numerical stats - remember the raw numbers here need to be converted to renin plasma activity (done by *0.158)
+```{r : renin numerical stats}
+#check units, standardise if necessary
+table(Reninframe$unit)
+#NEED CLARIFICATION ON UNITS AND SUBSEQUENT STANDARDISATION.
+```
+
+Let's make one table of all the processed biomarkers
+Try re-naming columns in ^ tables to reflect biomarker
+```{r}
+
+```
+
+*********************************
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# proportionsummary <- participantsnoduplicates %>%
+#   group_by(coid_assedate) %>% 
+#   summarise_each(funs(sum(!is.na(.))/length(.)))
+# 
+# variableproportions <- proportionsummary %>% summarise_each(mean)
+# 
+# variableproportionst <- t(variableproportions)
+# variableproportionst <- as.data.frame(variableproportionst)
+# variableproportionst <- rownames_to_column(variableproportionst, var="Var1")
+# 
+# names(variableproportionst)[names(variableproportionst)=="V1"] <- "averageproportiondata"
+# 
+# variablesinfo <- full_join(structure, variableproportionst, by = "Var1")
+# names(variablesinfo)[names(variablesinfo)=="Length"] <- "n_visits"
+```
+
+Let's have a look now at data completeness.
+In the dataframes made here, 0 = completely full, 1 = completely empty.
+```{r : % missing data}
+pcntMissing <- function(col) length(col[col == ""])/length(col)
+
+# for participant data
+participant_data_2023_2024 <- participantsnoduplicates %>%
+  filter(Date...CAH.Longitudinal.Data > "2023-12-01")
+
+missing_participant_data_2023_2024 <- participant_data_2023_2024 %>%
+  group_by(Centre.ID) %>%
+  summarise(across(everything(), pcntMissing)) %>%
+  round(., digits = 2)  
+
+participant_data_2022_2023 <- participantsnoduplicates %>%
+  filter(Date...CAH.Longitudinal.Data < "2023-12-01" & Date...CAH.Longitudinal.Data > "2022-12-01")
+
+missing_participant_data_2022_2023 <- participant_data_2022_2023 %>%
+  group_by(Centre.ID) %>%
+  summarise(across(everything(), pcntMissing)) %>%
+  round(., digits = 2)  
+
+# for lab data
+pcntMissinglabs <- function(col) length(col[col == "NULL" | ""])/length(col)
+
+lab_data_2023_2024 <- labs_wide %>%
+  filter(assessment_date > "2023-12-01")
+
+# missing_lab_data_2023_2024 <- lab_data_2023_2024 %>%
+#   group_by(Centre.ID) %>%
+#   summarise(across(everything(), pcntMissinglabs)) %>%
+#   round(., digits = 2)
+
+# for med data
+pcntMissingmeds <- function(col) length(col[col == "NULL" | ""])/length(col)
+```
+
+```{r}
+print("Script complete")
+```
+
+
+NOTES:
+regarding patient numbers, ask NP when CaHASE2 started and filter patient numbers per centre since the study began (they might have old patients on the registry from e.g 10 years ago, who are registered and will be counted here but aren't actually relevant for CaHASE2).
+
+What to do with 'other/NULL' medication (in terms of including in medication stuff). Units are sometimes 'NULL', and medicine is sometimes 'other' or 'NULL'.
+
+For overallstats I need to separate them into the two timeframes.
+
+Need to add in missing centres into dexamethasone prescription data frame.
+
+Remove unnecessary column from BMI stats frames. Add in empty centres.
+
+Add in empty centres to medication stat frames.
+Add in empty centres to sex data frames
+Add in empty centres to age data frames
+Add in proportions to age data frames
+
+Change 'number of visits' to 'number of entries' wherever this is used.
+
+Missing data.
+
