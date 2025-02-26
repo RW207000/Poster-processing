@@ -77,7 +77,7 @@ Making a dataframe of the removed duplicate assessment entries
 toremove <- duplicateassessments$idvisitdate
 removedrecords <- subset(participants, coid_assedate %in% toremove)
 
-write.csv(removedrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs", row.names = F)
+write.csv(removedrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/removed_records", row.names = F)
 ```
 
 Because I've removed all duplicate assessment entries, we might have lost participant/s if their only entry is one of these removed duplicates.
@@ -92,7 +92,7 @@ toremovelostparticipants <- participantsnoduplicates$CO.ID
 lostparticipants <- NA
 lostparticipants <- subset(participants, !CO.ID %in% toremovelostparticipants)
 
-write.csv(lostparticipants, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/lostparticipants.csv", row.names = F)
+write.csv(lostparticipants, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/lostparticipants.csv", row.names = F)
 ```
 
 
@@ -222,7 +222,7 @@ sexdistribution_Dec22_Dec23$"% Male (2022-2023)" <- round(sexdistribution_Dec22_
 sex <- full_join(sexdistribution_Dec22_Dec23, sexdistribution_Dec23_Dec24, by = "Centre.ID")#
 sex <- sex [order(sex$Centre.ID),]
 
-write.csv(sex, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/sex.csv", row.names = F)
+write.csv(sex, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/sex.csv", row.names = F)
 
 ```
 
@@ -431,8 +431,8 @@ visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 %>%
   rename("number of patients on I-CAH" = "total_number_of_patients")
 
 
-write.csv(visitstatspercentre_Dec2023_Dec2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/visitstatspercentre_Dec2023_Dec2024.csv", row.names = F)
-write.csv(visitstatspercentre_Dec2022_Dec2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/visitstatspercentre_Dec2022_Dec2023.csv", row.names = F)
+write.csv(visitstatspercentre_Dec2023_Dec2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visitstatspercentre_Dec2023_Dec2024.csv", row.names = F)
+write.csv(visitstatspercentre_Dec2022_Dec2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visitstatspercentre_Dec2022_Dec2023.csv", row.names = F)
 ```
 
 
@@ -441,7 +441,7 @@ Then let's look at visit stats for each centre
 centredata <- full_join(patientspercentre, visitspercentre, by = "Centre.ID")
 centredata <- centredata[, c(1,2,4,3,5)]
 
-write.csv(centredata, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/centredata.csv", row.names = F)
+write.csv(centredata, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs//centredata.csv", row.names = F)
 ```
 
 Age distribution don't really need to be included in the time split categories so let's just make one data frame showing age distributions of patients for each centre.
@@ -482,8 +482,8 @@ ageframe2023_2024 <- ages %>%
               values_from = n)
 
 
-write.csv(ageframe2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/ageframe2022_2023.csv", row.names = F)
-write.csv(ageframe2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/ageframe2023_2024.csv", row.names = F)
+write.csv(ageframe2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/ageframe2022_2023.csv", row.names = F)
+write.csv(ageframe2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/ageframe2023_2024.csv", row.names = F)
 
 # N.B: if an age category is empty here (i.e. no one of that age) then it is omitted from this table
 # need to add empty centres
@@ -759,7 +759,7 @@ overallvisitsstats$visitswithmed <- n_unique(meds_wide$assessment_id)
 
 overallvisitsstats$patientswithmed <- n_unique(meds_wide$CO.ID)
 
-write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/overallvisitsstats.csv", row.names = F)
+write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/overallvisitsstats.csv", row.names = F)
 ```
 
 Let's have a look at prescription habits
@@ -781,7 +781,7 @@ prescriptions <- prescriptions %>%
   full_join(prescriptionsnoentries, prescriptions, by = "Centre.ID")
 prescriptions <- prescriptions [order(prescriptions$Centre.ID),]
 
-write.csv(prescriptions, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prescriptions.csv", row.names = F)
+write.csv(prescriptions, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prescriptions.csv", row.names = F)
 
 prescriptions_2023_2024 <- medprescriptions %>%
   group_by(Centre.ID, medicine) %>%
@@ -794,7 +794,7 @@ prescriptions_2023_2024 <- medprescriptions %>%
 prescriptions_2023_2024 <- prescriptions_2023_2024 %>%
   full_join(centreIDs2022_2024, prescriptions_2023_2024, by = "Centre.ID")
 prescriptions_2023_2024 <- prescriptions_2023_2024 [order(prescriptions_2023_2024$Centre.ID),]
-write.csv(prescriptions_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prescriptions_2023_2024.csv", row.names = F)
+write.csv(prescriptions_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prescriptions_2023_2024.csv", row.names = F)
 
 prescriptions_2022_2023 <- medprescriptions %>%
   group_by(Centre.ID, medicine) %>%
@@ -807,7 +807,7 @@ prescriptions_2022_2023 <- medprescriptions %>%
 prescriptions_2022_2023 <- prescriptions_2022_2023 %>%
   full_join(centreIDs2022_2024, prescriptions_2022_2023, by = "Centre.ID")
 prescriptions_2022_2023 <- prescriptions_2022_2023 [order(prescriptions_2022_2023$Centre.ID),]
-write.csv(prescriptions_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prescriptions_2022_2023.csv", row.names = F)
+write.csv(prescriptions_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prescriptions_2022_2023.csv", row.names = F)
 
 
 othermeds <- subset(medication_clean, medicine == "other")
@@ -839,7 +839,7 @@ hydrocortisonestats <- hydrocortisonestats %>%
   full_join(prescriptionsnoentries, hydrocortisonestats, by = "Centre.ID")
 hydrocortisonestats <- hydrocortisonestats [order(hydrocortisonestats$Centre.ID),]
 
-write.csv(hydrocortisonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/hydrocortisonestats.csv", row.names = F)
+write.csv(hydrocortisonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/hydrocortisonestats.csv", row.names = F)
 
 # for time periods
 hydrocortisonestats_2023_2024 <- hydroframe %>%
@@ -858,7 +858,7 @@ hydrocortisonestats_2023_2024 <- hydrocortisonestats_2023_2024 %>%
   full_join(prescriptionsnoentries, hydrocortisonestats_2023_2024, by = "Centre.ID")
 hydrocortisonestats_2023_2024 <- hydrocortisonestats_2023_2024 [order(hydrocortisonestats_2023_2024$Centre.ID),]
 
-write.csv(hydrocortisonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/hydrocortisonestats_2023_2024.csv", row.names = F)
+write.csv(hydrocortisonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/hydrocortisonestats_2023_2024.csv", row.names = F)
 
 
 hydrocortisonestats_2022_2023 <- hydroframe %>%
@@ -877,7 +877,7 @@ hydrocortisonestats_2022_2023 <- hydrocortisonestats_2022_2023 %>%
   full_join(prescriptionsnoentries, hydrocortisonestats_2022_2023, by = "Centre.ID")
 hydrocortisonestats_2022_2023 <- hydrocortisonestats_2022_2023 [order(hydrocortisonestats_2022_2023$Centre.ID),]
 
-write.csv(hydrocortisonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/hydrocortisonestats_2022_2023.csv", row.names = F)
+write.csv(hydrocortisonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/hydrocortisonestats_2022_2023.csv", row.names = F)
 
 
 # now let's do prednisolone
@@ -898,7 +898,7 @@ prednisolonestats <- prednisolonestats %>%
   full_join(prescriptionsnoentries, prednisolonestats, by = "Centre.ID")
 prednisolonestats <- prednisolonestats [order(prednisolonestats$Centre.ID),]
 
-write.csv(prednisolonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prednisolonestats.csv", row.names = F)
+write.csv(prednisolonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prednisolonestats.csv", row.names = F)
 
 # timeframes
 prednisolonestats_2023_2024 <- predframe %>%
@@ -917,7 +917,7 @@ prednisolonestats_2023_2024 <- prednisolonestats_2023_2024 %>%
   full_join(prescriptionsnoentries, prednisolonestats_2023_2024, by = "Centre.ID")
 prednisolonestats_2023_2024 <- prednisolonestats_2023_2024 [order(prednisolonestats_2023_2024$Centre.ID),]
 
-write.csv(prednisolonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prednisolonestats_2023_2024.csv", row.names = F)
+write.csv(prednisolonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prednisolonestats_2023_2024.csv", row.names = F)
 
 
 prednisolonestats_2022_2023 <- predframe %>%
@@ -936,7 +936,7 @@ prednisolonestats_2022_2023 <- prednisolonestats_2022_2023 %>%
   full_join(prescriptionsnoentries, prednisolonestats_2022_2023, by = "Centre.ID")
 prednisolonestats_2022_2023 <- prednisolonestats_2022_2023 [order(prednisolonestats_2022_2023$Centre.ID),]
 
-write.csv(prednisolonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/prednisolonestats_2022_2023.csv", row.names = F)
+write.csv(prednisolonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prednisolonestats_2022_2023.csv", row.names = F)
 
 
 # and dexamethasone
@@ -957,7 +957,7 @@ dexamethasonestats <- dexamethasonestats %>%
   full_join(prescriptionsnoentries, dexamethasonestats, by = "Centre.ID")
 dexamethasonestats <- dexamethasonestats [order(dexamethasonestats$Centre.ID),]
 
-write.csv(dexamethasonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/dexamethasonestats.csv", row.names = F)
+write.csv(dexamethasonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/dexamethasonestats.csv", row.names = F)
 
 #time frames
 dexamethasonestats_2023_2024 <- dexframe %>%
@@ -976,7 +976,7 @@ dexamethasonestats_2023_2024 <- dexamethasonestats_2023_2024 %>%
   full_join(prescriptionsnoentries, dexamethasonestats_2023_2024, by = "Centre.ID")
 dexamethasonestats_2023_2024 <- dexamethasonestats_2023_2024 [order(dexamethasonestats_2023_2024$Centre.ID),]
 
-write.csv(dexamethasonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/dexamethasonestats_2023_2024.csv", row.names = F)
+write.csv(dexamethasonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/dexamethasonestats_2023_2024.csv", row.names = F)
 
 
 dexamethasonestats_2022_2023 <- dexframe %>%
@@ -995,7 +995,7 @@ dexamethasonestats_2022_2023 <- dexamethasonestats_2022_2023 %>%
   full_join(prescriptionsnoentries, dexamethasonestats_2022_2023, by = "Centre.ID")
 dexamethasonestats_2022_2023 <- dexamethasonestats_2022_2023 [order(dexamethasonestats_2022_2023$Centre.ID),]
 
-write.csv(dexamethasonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/dexamethasonestats_2022_2023.csv", row.names = F)
+write.csv(dexamethasonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/dexamethasonestats_2022_2023.csv", row.names = F)
 ```
 
 Let's try to work out how many patients are on a single medication or combined.
@@ -1068,7 +1068,7 @@ Add labs stats onto 'overall visit stats' and make new frames for per centre.
 ```{r}
 overallvisitsstats$number_of_labs_entries <- length(labs_wide$CO.ID)
 overallvisitsstats$number_of_lab_patients <- n_unique(labs_wide$CO.ID)
-write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/overallvisitsstats.csv", row.names = F)
+write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/overallvisitsstats.csv", row.names = F)
 
 labentries2022_2023 <- labs_wide %>%
   filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
@@ -1102,9 +1102,9 @@ overallvisitspercentre_2023_2024 <- full_join(overallvisitspercentre_2023_2024, 
 entryrecords <- full_join(overallvisitspercentre_2022_2023, overallvisitspercentre_2023_2024)
 entryrecords <- entryrecords [order(entryrecords$Centre.ID),]
 
-write.csv(overallvisitspercentre_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/overallvisitspercentre_2022_2023.csv", row.names = F)
-write.csv(overallvisitspercentre_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/overallvisitspercentre_2023_2024.csv", row.names = F)
-write.csv(entryrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/entryrecords.csv", row.names = F)
+write.csv(overallvisitspercentre_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/overallvisitspercentre_2022_2023.csv", row.names = F)
+write.csv(overallvisitspercentre_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/overallvisitspercentre_2023_2024.csv", row.names = F)
+write.csv(entryrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/entryrecords.csv", row.names = F)
 ```
 
 
@@ -1162,7 +1162,7 @@ BMI2023_2024_no_entries <- anti_join(centreIDs2022_2024, BMIframe2023_2024, by =
 BMIstats2023_2024 <- full_join(BMIstats2023_2024, BMI2023_2024_no_entries, by = "Centre.ID")
 BMIstats2023_2024 <- BMIstats2023_2024 [order(BMIstats2023_2024$Centre.ID),]
 
-write.csv(BMIstats2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/BMIstats2023_2024.csv", row.names = F)
+write.csv(BMIstats2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/BMIstats2023_2024.csv", row.names = F)
 
 BMIframe2022_2023 <- BMIframe %>%
   filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01")
@@ -1182,7 +1182,7 @@ BMI2022_2023_no_entries <- anti_join(centreIDs2022_2024, BMIframe2022_2023, by =
 BMIstats2022_2023 <- full_join(BMIstats2022_2023, BMI2022_2023_no_entries, by = "Centre.ID")
 BMIstats2022_2023 <- BMIstats2022_2023 [order(BMIstats2022_2023$Centre.ID),]
 
-write.csv(BMIstats2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/BMIstats2022_2023.csv", row.names = F)
+write.csv(BMIstats2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/BMIstats2022_2023.csv", row.names = F)
 ```
 
 
@@ -1220,8 +1220,8 @@ OHP2022_2023_no_entries <- anti_join(centreIDs2022_2024, OHPframe_2022_2023, by 
 OHPframe_2022_2023 <- full_join(OHP2022_2023_no_entries, OHPframe_2022_2023, by = "Centre.ID")
 OHPframe_2022_2023 <- OHPframe_2022_2023 [order(OHPframe_2022_2023$Centre.ID),]
 
-write.csv(OHPframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/OHPframe_2023_2024.csv", row.names = F)
-write.csv(OHPframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/OHPframe_2022_2023.csv", row.names = F)
+write.csv(OHPframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/OHPframe_2023_2024.csv", row.names = F)
+write.csv(OHPframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/OHPframe_2022_2023.csv", row.names = F)
 ```
 
 Now let's do numerical analysis.
@@ -1258,8 +1258,8 @@ OHP2022_2023stats <- OHPframe %>%
 OHP2022_2023stats <- full_join(OHP2022_2023_no_entries, OHP2022_2023stats, by = "Centre.ID")
 OHP2022_2023stats <- OHP2022_2023stats [order(OHP2022_2023stats$Centre.ID),]
 
-write.csv(OHP2023_2024stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/OHP2023_2024stats.csv", row.names = F)
-write.csv(OHP2022_2023stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/OHP2022_2023stats.csv", row.names = F)
+write.csv(OHP2023_2024stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/OHP2023_2024stats.csv", row.names = F)
+write.csv(OHP2022_2023stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/OHP2022_2023stats.csv", row.names = F)
 ```
 
 
@@ -1293,8 +1293,8 @@ Ando2022_2023_no_entries <- anti_join(centreIDs2022_2024, Andoframe_2022_2023, b
 Andoframe_2022_2023 <- full_join(Ando2022_2023_no_entries, Andoframe_2022_2023, by = "Centre.ID")
 Andoframe_2022_2023 <- Andoframe_2022_2023 [order(Andoframe_2022_2023$Centre.ID),]
 
-write.csv(Andoframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Andoframe_2022_2023.csv", row.names = F)
-write.csv(Andoframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Andoframe_2023_2024.csv", row.names = F)
+write.csv(Andoframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/Andoframe_2022_2023.csv", row.names = F)
+write.csv(Andoframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/Andoframe_2023_2024.csv", row.names = F)
 ```
 
 Numerical stats for ando too, now.
@@ -1330,8 +1330,8 @@ Ando2022_2023stats <- Andoframe %>%
 Ando2022_2023stats <- full_join(Ando2022_2023_no_entries, Ando2022_2023stats, by = "Centre.ID")
 Ando2022_2023stats <- Ando2022_2023stats [order(Ando2022_2023stats$Centre.ID),]
 
-write.csv(Ando2023_2024stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Ando2023_2024stats.csv", row.names = F)
-write.csv(Ando2022_2023stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Ando2022_2023stats.csv", row.names = F)
+write.csv(Ando2023_2024stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/Ando2023_2024stats.csv", row.names = F)
+write.csv(Ando2022_2023stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/Ando2022_2023stats.csv", row.names = F)
 ```
 
 Now renin.
@@ -1367,8 +1367,8 @@ Renin2022_2023_no_entries <- anti_join(centreIDs2022_2024, Reninframe_2022_2023,
 Reninframe_2022_2023 <- full_join(Renin2022_2023_no_entries, Reninframe_2022_2023, by = "Centre.ID")
 Reninframe_2022_2023 <- Reninframe_2022_2023 [order(Reninframe_2022_2023$Centre.ID),]
 
-write.csv(Reninframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Reninframe_2022_2023.csv", row.names = F)
-write.csv(Reninframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/Reninframe_2023_2024.csv", row.names = F)
+write.csv(Reninframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/Reninframe_2022_2023.csv", row.names = F)
+write.csv(Reninframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/Reninframe_2023_2024.csv", row.names = F)
 ```
 
 Now for renin numerical stats - remember the raw numbers here need to be converted to renin plasma activity (done by *0.158)
