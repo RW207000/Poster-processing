@@ -31,7 +31,20 @@ medication <- remove_empty(medication, c("cols"), cutoff = 1)
 
 labs <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Labs data 24.02.2025.csv", header=T, na.strings= c("", "NA"))
 # labs$assessment_date <- as.Date(labs$assessment_date, format = "%d/%m/%Y")
+
+
 ```
+
+*********************************
+Checking how similar this tranche is to one from Sept
+
+Data is present in different frames to last time...
+
+Notes:
+- don't need 'First Presentation' data (not relevant info)
+- don't need ae for this processing
+- 
+
 
 *********************************
 *********************************
@@ -154,9 +167,9 @@ visitdateparticipants <- participantsnoduplicates$Date...CAH.Longitudinal.Data
 visitdateparticipants <- as.Date(visitdateparticipants,
                                  format = "%d/%m/%Y")
 
-participantsnoduplicates$Date...CAH.Longitudinal.Data <- as.Date(participantsnoduplicates$Date...CAH.Longitudinal.Data, format = "%d/%m/%Y")
+# participantsnoduplicates$Date...CAH.Longitudinal.Data <- as.Date(participantsnoduplicates$Date...CAH.Longitudinal.Data, format = "%d/%m/%Y")
 
-participantsnoduplicates$timesincelastvisit <- Today - visitdateparticipants
+# participantsnoduplicates$timesincelastvisit <- Today - visitdateparticipants
 ```
 
 The data frames from this section will show the sex of patients who have had a visit in a certain time frame.
@@ -203,72 +216,13 @@ visitsperparticipant <- participantsnoduplicates %>%
 overallvisitsstats <- visitsperparticipant %>%
   summarise("total number of patients" = n(),
             meanvisits = mean(n, na.rm = TRUE),
-            medianvisits = median(n, na.rm = TRUE),                                            sdvisits = sd(n, na.rm = TRUE),
+            medianvisits = median(n, na.rm = TRUE),                                            
+            sdvisits = sd(n, na.rm = TRUE),
             minvisits = min(n, na.rm = TRUE),
             maxvisits = max(n, na.rm = TRUE)) %>%
   round(digits = 2)
 
 overallvisitsstats$total_visits <- sum(visitsperparticipant$n)
-```
-
-Now let's make the required time frames
-```{r : visit time frames}
-visitspercentre_Dec2023_Dec2024 <- participantsnoduplicates %>%
-  group_by(Centre.ID) %>%
-  filter(Date...CAH.Longitudinal.Data > "2023-12-01" & Date...CAH.Longitudinal.Data < "2024-12-01") %>%
-  summarise(n = n()) %>%
-  rename("number_of_patient_visits_Dec2023_Dec2024"= "n")
-
-visitstatspercentre_Dec2023_Dec2024 <- participantsnoduplicates %>%
-  group_by(Centre.ID, CO.ID) %>%
-  filter(Date...CAH.Longitudinal.Data > "2023-12-01" & Date...CAH.Longitudinal.Data < "2024-12-01") %>%
-  summarise(n = n())
-
-visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 %>%
-  summarise(numberpatients =n(),
-            meanvisits=mean(n, na.rm = TRUE),
-            medianvisits=median(n, na.rm = TRUE),                                            sdvisits=sd(n, na.rm = TRUE),
-            minvisits=min(n, na.rm = TRUE),
-            maxvisits=max(n, na.rm = TRUE)) %>%
-  round(digits = 2)
-
-visitstatspercentre_Dec2023_Dec2024 <- full_join(visitstatspercentre_Dec2023_Dec2024, visitspercentre_Dec2023_Dec2024, by = "Centre.ID")
-
-visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024[, c(1,2,8,3,4,5,6,7)]
-visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 %>%
-  rename("number of patients assessed" = "numberpatients",
-         "number of visits" = "number_of_patient_visits_Dec2023_Dec2024")
-
-
-
-visitspercentre_Dec2022_Dec2023 <- participantsnoduplicates %>%
-  group_by(Centre.ID) %>%
-  filter(Date...CAH.Longitudinal.Data > "2022-12-01" & Date...CAH.Longitudinal.Data < "2023-12-01") %>%
-  summarise(n = n()) %>%
-  rename("number_of_patient_visits_Dec2022_Dec2023"= "n")
-
-visitstatspercentre_Dec2022_Dec2023 <- participantsnoduplicates %>%
-  group_by(Centre.ID, CO.ID) %>%
-  filter(Date...CAH.Longitudinal.Data > "2022-12-01" & Date...CAH.Longitudinal.Data < "2023-12-01") %>%
-  summarise(n = n())
-
-visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 %>%
-  summarise(numberpatients =n(),
-            meanvisits=mean(n, na.rm = TRUE),
-            medianvisits=median(n, na.rm = TRUE),                                            sdvisits=sd(n, na.rm = TRUE),
-            minvisits=min(n, na.rm = TRUE),
-            maxvisits=max(n, na.rm = TRUE)) %>%
-  round(digits = 2)
-
-visitstatspercentre_Dec2022_Dec2023 <- full_join(visitstatspercentre_Dec2022_Dec2023, visitspercentre_Dec2022_Dec2023, by = "Centre.ID")
-
-visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023[, c(1,2,8,3,4,5,6,7)]
-visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 %>%
-  rename("number of patients assessed" = "numberpatients",
-         "number of visits" = "number_of_patient_visits_Dec2022_Dec2023")
-
-visitspercentre <- full_join(visitspercentre_Dec2022_Dec2023, visitspercentre_Dec2023_Dec2024, by = "Centre.ID")
-visitspercentre <- visitspercentre [order(visitspercentre$Centre.ID),]
 ```
 
 Now, not all centres will have entered data in the time frames of interest, so let's find out which centres (based on Centre.ID) this applies to.
