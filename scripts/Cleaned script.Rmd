@@ -22,25 +22,15 @@ lapply(packages, library, character.only = TRUE)
 
 Reading in original data.
 ```{r : reading in data}
-all_participants <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/data/CO-ID_202403_NK CaHASE2 CAH 160924.csv", header=T, na.strings= c("", "NA"))
-all_participants$Date...CAH.Longitudinal.Data <- as.Date(all_participants$Date...CAH.Longitudinal.Data, format = "%d/%m/%Y")
+participants <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Core only 24.02.2025.csv", header=T, na.strings= c("", "NA"))
+# participants$Date...CAH.Longitudinal.Data <- as.Date(participants$Date...CAH.Longitudinal.Data, format = "%d/%m/%Y")
 
-participants <- all_participants %>%
-  filter(Date...CAH.Longitudinal.Data > "2022-12-01")
+medication <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Glucocorticoids Data 24.02.2025.csv", header=T, na.strings= c("", "NA"))
+medication <- remove_empty(medication, c("cols"), cutoff = 1)
+# medication$assessment_date <- as.Date(medication$assessment_date, format = "%d/%m/%Y")
 
-all_medication <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/data/CO-ID_202403_NK CaHASE2_CAH study Meds_extract_19.09.24 (original).csv", header=T, na.strings= c("", "NA"))
-all_medication <- remove_empty(all_medication, c("cols"), cutoff = 1)
-all_medication$assessment_date <- as.Date(all_medication$assessment_date, format = "%d/%m/%Y")
-
-medication <- all_medication %>%
-  filter(assessment_date > "2022-12-01")
-
-all_labs <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/data/CO-ID_202403_NK CaHASE2_CAH study Labs_extract_16.9.24.csv", header=T, na.strings= c("", "NA"))
-all_labs$assessment_date <- as.Date(all_labs$assessment_date, format = "%d/%m/%Y")
-
-labs <- all_labs %>%
-  filter(assessment_date > "2022-12-01")
-
+labs <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Labs data 24.02.2025.csv", header=T, na.strings= c("", "NA"))
+# labs$assessment_date <- as.Date(labs$assessment_date, format = "%d/%m/%Y")
 ```
 
 *********************************
@@ -87,7 +77,7 @@ Making a dataframe of the removed duplicate assessment entries
 toremove <- duplicateassessments$idvisitdate
 removedrecords <- subset(participants, coid_assedate %in% toremove)
 
-write.csv(removedrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Oct2024/My versions/Cleaned/Cleaned processing/outputs/removedrecords.csv", row.names = F)
+write.csv(removedrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs", row.names = F)
 ```
 
 Because I've removed all duplicate assessment entries, we might have lost participant/s if their only entry is one of these removed duplicates.
