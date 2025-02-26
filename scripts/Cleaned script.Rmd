@@ -189,41 +189,7 @@ overallsexdistribution$"% Female" <- round(overallsexdistribution$Female, digits
 overallsexdistribution$"% Male" <- (overallsexdistribution$Male / (overallsexdistribution$Female + overallsexdistribution$Male)) * 100
 overallsexdistribution$"% Male" <- round(overallsexdistribution$Male, digits = 2)
 
-sexdistribution_Dec23_Dec24 <- sexdataframe %>%
-  group_by(Centre.ID) %>%
-  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
-  count(Sex.at.birth...Birth) %>%
-  pivot_wider(names_from = Sex.at.birth...Birth,
-              values_from = n) %>%
-  rename("Female (2023-2024)" = "Female",
-         "Male (2023-2024)" = "Male")
-
-sexdistribution_Dec23_Dec24$"% Female (2023-2024)" <- (sexdistribution_Dec23_Dec24$`Female (2023-2024)` / (sexdistribution_Dec23_Dec24$`Male (2023-2024)` + sexdistribution_Dec23_Dec24$`Female (2023-2024)`)) * 100
-sexdistribution_Dec23_Dec24$"% Female (2023-2024)" <- round(sexdistribution_Dec23_Dec24$`% Female (2023-2024)`, digits = 2)
-
-sexdistribution_Dec23_Dec24$"% Male (2023-2024)" <- (sexdistribution_Dec23_Dec24$`Male (2023-2024)` / (sexdistribution_Dec23_Dec24$`Female (2023-2024)` + sexdistribution_Dec23_Dec24$`Male (2023-2024)`)) * 100
-sexdistribution_Dec23_Dec24$"% Male (2023-2024)" <- round(sexdistribution_Dec23_Dec24$`% Male (2023-2024)`, digits = 2)
-
-sexdistribution_Dec22_Dec23 <- sexdataframe %>%
-  group_by(Centre.ID) %>%
-  filter(Date...CAH.Longitudinal.Data > "2022-12-01" & Date...CAH.Longitudinal.Data < "2023-12-01") %>%
-  count(Sex.at.birth...Birth) %>%
-  pivot_wider(names_from = Sex.at.birth...Birth,
-              values_from = n) %>%
-  rename("Female (2022-2023)" = "Female",
-         "Male (2022-2023)" = "Male")
-
-sexdistribution_Dec22_Dec23$"% Female (2022-2023)" <- (sexdistribution_Dec22_Dec23$`Female (2022-2023)` / (sexdistribution_Dec22_Dec23$`Male (2022-2023)` + sexdistribution_Dec22_Dec23$`Female (2022-2023)`)) * 100
-sexdistribution_Dec22_Dec23$"% Female (2022-2023)" <- round(sexdistribution_Dec22_Dec23$`% Female (2022-2023)`, digits = 2)
-
-sexdistribution_Dec22_Dec23$"% Male (2022-2023)" <- (sexdistribution_Dec22_Dec23$`Male (2022-2023)` / (sexdistribution_Dec22_Dec23$`Female (2022-2023)` + sexdistribution_Dec22_Dec23$`Male (2022-2023)`)) * 100
-sexdistribution_Dec22_Dec23$"% Male (2022-2023)" <- round(sexdistribution_Dec22_Dec23$`% Male (2022-2023)`, digits = 2)
-
-sex <- full_join(sexdistribution_Dec22_Dec23, sexdistribution_Dec23_Dec24, by = "Centre.ID")#
-sex <- sex [order(sex$Centre.ID),]
-
 write.csv(sex, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/sex.csv", row.names = F)
-
 ```
 
 
