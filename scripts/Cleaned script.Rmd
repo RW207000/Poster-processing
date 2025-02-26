@@ -209,50 +209,6 @@ overallvisitsstats <- visitsperparticipant %>%
   round(digits = 2)
 
 overallvisitsstats$total_visits <- sum(visitsperparticipant$n)
-
-visitsperparticipant_2023_2024 <- participantsnoduplicates %>%
-  group_by(CO.ID) %>%
-  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
-  summarise(n=n())
-
-overallvisitsstats_2023_2024 <- visitsperparticipant_2023_2024 %>%
-  summarise("total number of patients" = n(),
-            meanvisits = mean(n, na.rm = TRUE),
-            medianvisits = median(n, na.rm = TRUE),                                            sdvisits = sd(n, na.rm = TRUE),
-            minvisits = min(n, na.rm = TRUE),
-            maxvisits = max(n, na.rm = TRUE)) %>%
-  round(digits = 2)
-
-overallvisitsstats_2023_2024$total_visits <- sum(visitsperparticipant_2023_2024$n)
-
-
-visitsperparticipant_2022_2023 <- participantsnoduplicates %>%
-  group_by(CO.ID) %>%
-  filter(Date...CAH.Longitudinal.Data < "2023-12-01" & Date...CAH.Longitudinal.Data > "2022-12-01") %>%
-  summarise(n=n())
-
-overallvisitsstats_2022_2023 <- visitsperparticipant_2022_2023 %>%
-  summarise("total number of patients" = n(),
-            meanvisits=mean(n, na.rm = TRUE),
-            medianvisits=median(n, na.rm = TRUE),                                            sdvisits=sd(n, na.rm = TRUE),
-            minvisits=min(n, na.rm = TRUE),
-            maxvisits=max(n, na.rm = TRUE)) %>%
-  round(digits = 2)
-
-overallvisitsstats_2022_2023$total_visits <- sum(visitsperparticipant_2022_2023$n)
-
-
-overallvisitspercentre_2023_2024 <- participantsnoduplicates %>%
-  group_by(Centre.ID) %>%
-  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
-  summarise(n = n()) %>%
-  rename("Number of visits (2023-2024)" = "n")
-
-overallvisitspercentre_2022_2023 <- participantsnoduplicates %>%
-  group_by(Centre.ID) %>%
-  filter(Date...CAH.Longitudinal.Data < "2023-12-01" & Date...CAH.Longitudinal.Data > "2022-12-01") %>%
-  summarise(n = n()) %>%
-  rename("Number of visits (2022-2023)" = "n")
 ```
 
 Now let's make the required time frames
