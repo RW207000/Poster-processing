@@ -166,8 +166,6 @@ patients_per_centre <- test %>%
   summarise(n_unique(CO.ID)) %>%
   as.data.frame() %>%
    rename("number of patients" = "n_unique(CO.ID)")
-
-write.csv(patients_per_centre, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/patients_per_centre.csv", row.names = F)
 ```
 
 ```{r : visits per centre}
@@ -177,49 +175,10 @@ visits_per_centre <- test %>%
   rename("number of visits" = "n")
 ```
 
-
 ```{r : combining patient and visit stats}
 centre_stats <- full_join(patients_per_centre, visits_per_centre, by = "Centre.ID.x")
-```
 
-Having established how many patient visits each centre has recorded, let's now look at how many patients each centre has registered.
-For patient numbers for 2022-2023, I am including all patients recruited before Dec2023. For patients 2023-2024, I am including only patients recruited between Dec 2023 and Dec 2024.
-```{r}
-overallpatientspercentre <- participantsnoduplicates %>%
-   group_by(Centre.ID) %>%
-   summarise(n_unique(CO.ID)) %>%
-   as.data.frame() %>%
-   rename("total_number_of_patients" = "n_unique(CO.ID)")
-
-centres_no_patients <- as.data.frame(anti_join(centreIDs, overallpatientspercentre, by = "Centre.ID"))
-overallpatientspercentre <- full_join(overallpatientspercentre, centres_no_patients, by = "Centre.ID")
-overallpatientspercentre <- overallpatientspercentre [order(overallpatientspercentre$Centre.ID),]
-```
-
-```{r : adding in number of patients registered on I-CAH to visitstats}
-# maybe keep but just apply to overall data
-visitstatspercentre_Dec2023_Dec2024 <- full_join(visitstatspercentre_Dec2023_Dec2024, overallpatientspercentre, by = "Centre.ID")
-visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 [, c(1,9,2:8)]
-visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 %>%
-  rename("number of patients on I-CAH" = "total_number_of_patients")
-
-
-visitstatspercentre_Dec2022_Dec2023 <- full_join(visitstatspercentre_Dec2022_Dec2023, overallpatientspercentre, by = "Centre.ID")
-visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 [, c(1,9,2:8)]
-visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 %>%
-  rename("number of patients on I-CAH" = "total_number_of_patients")
-
-
-write.csv(visitstatspercentre_Dec2023_Dec2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visitstatspercentre_Dec2023_Dec2024.csv", row.names = F)
-write.csv(visitstatspercentre_Dec2022_Dec2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visitstatspercentre_Dec2022_Dec2023.csv", row.names = F)
-```
-
-Then let's look at visit stats for each centre
-```{r}
-centredata <- full_join(patientspercentre, visitspercentre, by = "Centre.ID")
-centredata <- centredata[, c(1,2,4,3,5)]
-
-write.csv(centredata, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs//centredata.csv", row.names = F)
+write.csv(centre_stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/centre_stats.csv", row.names = F)
 ```
 
 Age distributions
@@ -305,13 +264,13 @@ medication_clean$Standardised.doses <- NA
 medication_clean$Standardised.doses <- as.character(medication_clean$Standardised.doses)
 
 medication_clean$Standardised.doses <- 
-  ifelse(medication_clean$Medicine == "hydrocortisone", medication_clean$Dose, NA)
+  ifelse(medication_clean$Medicine == "Hydrocortisone", medication_clean$Dose, NA)
 
 medication_clean$Standardised.doses <- 
-  ifelse(medication_clean$Medicine == "prednisolone", (as.numeric(medication_clean$Dose) * prednisoloneratio), medication_clean$Standardised.doses)
+  ifelse(medication_clean$Medicine == "Prednisolone", (as.numeric(medication_clean$Dose) * prednisoloneratio), medication_clean$Standardised.doses)
 
 medication_clean$Standardised.doses <- 
-  ifelse(medication_clean$Medicine == "dexamethasone", (as.numeric(medication_clean$Dose) * dexamethasoneratio), medication_clean$Standardised.doses)
+  ifelse(medication_clean$Medicine == "Dexamethasone", (as.numeric(medication_clean$Dose) * dexamethasoneratio), medication_clean$Standardised.doses)
 ```
 
 
