@@ -129,79 +129,21 @@ freqcheck <- freqcheck[freqcheck$idvisitdate != c("Total", "<NA>"),]
 *********************************
 *********************************
 ------Making dataframes------
-Let's start with widening labs dataframe.
-Use pivot_wide to make the currently long data, wide.
-Labs data has a 'key' and a 'value' which is what pivot_wide requires.
-The key and value columns must be the only two things different to each other on each line, so we need to remove any other columns where data differs between rows.
-
-Also, in the output file we want both the numerical and interpretation of each lab test performed, so we need to make two new, wide data frames (one for numerical, one for interpretation) and join them.
-```{r : making labswide, include=FALSE}
-# valuesdrop <- c("result", "date_and_time")
-# labsvalues <- labs[, !names(labs) %in% valuesdrop]
-# labsvalues <- labsvalues %>%
-#   pivot_wider(names_from = "labs_type",
-#               values_from = "value")
-# 
-# interpdrop <- c("value", "date_and_time")
-# labsinterp <- labs[, !names(labs) %in% interpdrop]
-# labsinterp <- labsinterp %>%
-#   pivot_wider(names_from = "labs_type",
-#               values_from = "result")
-# 
-# labswide <- left_join(labsvalues, labsinterp, by = c("CO.ID", "assessment_id", "assessment_date", "Centre.ID"))
-# 
-# names(labswide) <- gsub(x = names(labswide), pattern = ".x",
-#                         replacement = ".value")
-# names(labswide) <- gsub(x = names(labswide), pattern = ".y",
-#                         replacement = ".interpretation")
-# 
-# labsorder <- c("Centre.ID", "CO.ID", "date_of_birth.value", "assessment_id", "assessment_date", "total_testosterone.value", "total_testosterone.interpretation", "sodium.value", "sodium.interpretation", "potassium.value", "potassium.interpretation", "acth.value", "acth.interpretation", "cortisol.value", "cortisol.interpretation", "glucose.value", "glucose.interpretation", "renin.value", "renin.interpretation", "ohp17.value", "ohp17.interpretation", "andostenedione.value", "andostenedione.interpretation", "shbg.value", "shbg.interpretation", "haemoglobin.value", "haemoglobin.interpretation", "haematocrit.value", "haematocrit.interpretation", "lh.value", "lh.interpretation", "fsh.value", "fsh.interpretation", "dheas.value", "dheas.interpretation","oestradiol.value", "oestradiol.interpretation", "progesterone.value", "progesterone.interpretation", "plasma_renin_activi.interpretation.value", "plasma_renin_activi.interpretation.interpretation", "urine_steroids_.interpretation_gcms.value", "urine_steroids_.interpretation_gcms.interpretation", "di.interpretationdrotestosterone.value", "di.interpretationdrotestosterone.interpretation")
-# labswide <- labswide[, labsorder]
-# 
-# labswide[labswide == "NULL"] <- NA
-```
 
 ```{r : sex distribution}
 # NEW
 sex_distribution <- select(participants, Sex.at.birth)
 
+sex_stats <- sex_distribution %>%
+  group_by(Sex.at.birth) %>%
+  summarise(n = n())
 
-
-# OLD
-sexcolumns <- c("Centre.ID", "CO.ID", "Sex.at.birth...Birth", "Date...CAH.Longitudinal.Data", "coid_assedate", "timesincelastvisit")
-sexdataframe <- participantsnoduplicates[, sexcolumns]
-
-overallsex <- as.data.frame(table(participantsnoduplicates$Sex.at.birth...Birth))
-propoverallsex <- as.data.frame(prop.table(table(participantsnoduplicates$Sex.at.birth...Birth)))
-
-overallsex <- left_join(overallsex, propoverallsex,
-                                    by = "Var1")
-
-overallsex <- overallsex %>%
-  rename("Sex at birth" = "Var1",
-         "Frequency" = "Freq.x",
-         "Proportion" = "Freq.y")
-overallsex$Proportion <- round(overallsex$Proportion, digits = 2)
-
-overallsexdistribution <- sexdataframe %>%
-  group_by(Centre.ID) %>%
-  count(Sex.at.birth...Birth) %>%
-  pivot_wider(names_from = Sex.at.birth...Birth,
-              values_from = n)
-
-overallsexdistribution$"% Female" <- (overallsexdistribution$Female / (overallsexdistribution$Male + overallsexdistribution$Female)) * 100
-overallsexdistribution$"% Female" <- round(overallsexdistribution$Female, digits = 2)
-
-overallsexdistribution$"% Male" <- (overallsexdistribution$Male / (overallsexdistribution$Female + overallsexdistribution$Male)) * 100
-overallsexdistribution$"% Male" <- round(overallsexdistribution$Male, digits = 2)
-
-write.csv(sex, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/sex.csv", row.names = F)
+write.csv(sex_stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/sex_stats.csv", row.names = F)
 ```
-
 
 Let's do the same for visit statistics.
 ```{r : visit statistics}
-visitsperparticipant <- participantsnoduplicates %>%
+visitsperparticipant <- test %>%
   group_by(CO.ID) %>%
   summarise(n=n())
 
@@ -217,24 +159,27 @@ overallvisitsstats <- visitsperparticipant %>%
 overallvisitsstats$total_visits <- sum(visitsperparticipant$n)
 ```
 
-Now, not all centres will have entered data in the time frames of interest, so let's find out which centres (based on Centre.ID) this applies to.
-```{r : centres missing data}
-centreIDs <- as.data.frame(unique(all_participants$Centre.ID))
-centreIDs <- centreIDs %>%
-  rename("Centre.ID" = "unique(all_participants$Centre.ID)")
+Let's do patients and visits per centre
+```{r : patients per centre}
+patients_per_centre <- test %>%
+  group_by(Centre.ID.x) %>%
+  summarise(n_unique(CO.ID)) %>%
+  as.data.frame() %>%
+   rename("number of patients" = "n_unique(CO.ID)")
 
-centres_no_entries <- as.data.frame(anti_join(centreIDs, visitspercentre, by = "Centre.ID"))
-visitspercentre <- full_join(visitspercentre, centres_no_entries, by = "Centre.ID")
-visitspercentre <- visitspercentre [order(visitspercentre$Centre.ID),]
+write.csv(patients_per_centre, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/patients_per_centre.csv", row.names = F)
+```
 
-# having establised which centres from the full list of 18 have not uploaded data in the time frames of interest, I'll create a new frame with just the 'active' centres in to use in data frames from here onwards.
+```{r : visits per centre}
+visits_per_centre <- test %>%
+  group_by(Centre.ID.x) %>%
+  summarise(n = n()) %>%
+  rename("number of visits" = "n")
+```
 
-# keep this in but change for single time frame
-centreIDs2022_2024 <- visitspercentre[!with(visitspercentre, is.na(visitspercentre$number_of_patient_visits_Dec2022_Dec2023) & is.na(visitspercentre$number_of_patient_visits_Dec2023_Dec2024)),]
 
-centreIDs2022_2024 <- as.data.frame(unique(centreIDs2022_2024$Centre.ID))
-centreIDs2022_2024 <- centreIDs2022_2024 %>%
-  rename("Centre.ID" = "unique(centreIDs2022_2024$Centre.ID)")
+```{r : combining patient and visit stats}
+centre_stats <- full_join(patients_per_centre, visits_per_centre, by = "Centre.ID.x")
 ```
 
 Having established how many patient visits each centre has recorded, let's now look at how many patients each centre has registered.
