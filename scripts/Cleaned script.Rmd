@@ -434,9 +434,9 @@ meds_wide <- meds_wide %>%
 Now we have a single line per visit and all doses in a single row.
 
 Now to add in the number of doses onto 'medperpatient' (couldn't do this earlier because widening meds is what introduces assessment entry numbers)
-```{r}
+```{r : doses per patient}
 medperpatient$number_of_doses <- medication_clean %>%
-  group_by(assessment_id) %>%
+  group_by(Assessment.ID) %>%
   summarise(max(assessment_entry))
 ```
 
