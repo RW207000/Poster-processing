@@ -752,6 +752,7 @@ Check which columns are missing and remove so this can work.
 # labsorder <- c("CO.ID", "Assessment.ID", "Date", "Total_testosterone.value", "Total_testosterone.interpretation", "Sodium.value", "Sodium.interpretation", "Potassium.value", "Potassium.interpretation", "acth.value", "acth.interpretation", "cortisol.value", "cortisol.interpretation", "glucose.value", "glucose.interpretation", "renin.value", "renin.interpretation", "ohp17.value", "ohp17.interpretation", "andostenedione.value", "andostenedione.interpretation", "shbg.value", "shbg.interpretation", "haemoglobin.value", "haemoglobin.interpretation", "haematocrit.value", "haematocrit.interpretation", "lh.value", "lh.interpretation", "fsh.value", "fsh.interpretation", "dheas.value", "dheas.interpretation","oestradiol.value", "oestradiol.interpretation", "progesterone.value", "progesterone.interpretation", "plasma_renin_activi.interpretation.value", "plasma_renin_activi.interpretation.interpretation", "urine_steroids_.interpretation_gcms.value", "urine_steroids_.interpretation_gcms.interpretation", "di.interpretationdrotestosterone.value", "di.interpretationdrotestosterone.interpretation")
 # labs_wide <- labs_wide[, labsorder]
 ```
+
 Let's extract required labs info for CAH biomarkers 17-OHP and andro
 ```{r : labs biomarker subset}
 CAH_biomarkers <- select(labs_wide, c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.interpretation"))
