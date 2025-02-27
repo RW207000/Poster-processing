@@ -32,6 +32,7 @@ medication <- remove_empty(medication, c("cols"), cutoff = 1)
 labs <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Labs data 24.02.2025.csv", header=T, na.strings= c("", "NA"))
 # labs$assessment_date <- as.Date(labs$assessment_date, format = "%d/%m/%Y")
 
+longitudinal <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Longitudinal data 24.02.2025.csv", header=T, na.strings= c("", "NA"))
 
 ```
 
@@ -43,9 +44,13 @@ Data is present in different frames to last time...
 Notes:
 - don't need 'First Presentation' data (not relevant info)
 - don't need ae for this processing
-- 
+- might need to merge dataframes...
 
 
+```{r : merging data frames}
+test <- merge(participants, longitudinal, by = "CO.ID",
+              all = TRUE)
+```
 *********************************
 *********************************
 ------Removing duplicates------
@@ -287,27 +292,25 @@ write.csv(centredata, file = "C:/Users/md1rwe/Documents/Data extractions from I-
 
 Age distributions
 ```{r : age distributions}
-participantsnoduplicates$DOB <- as.Date(participantsnoduplicates$Date.of.birth...Birth, format = "%d/%m/%Y")
+# NEW
+participants$Date.of.Birth <- as.Date(participants$Date.of.Birth, format = "%d/%m/%Y")
 
-participantsnoduplicates$Current_age_years <- as.numeric((Today - participantsnoduplicates$DOB) / 365)
-participantsnoduplicates$Current_age_years <- round(participantsnoduplicates$Current_age_years, digits =  0)
+Today = Sys.Date()
 
-participantsnoduplicates$age_category <- cut(participantsnoduplicates$Current_age_years,
-                         breaks = c(0,10,20,30,40,50,60,70,80,90,100),
-                         labels = c("0-10", "11-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100"))
+participants$Age <- as.numeric((Today - participants$Date.of.Birth) / 365)
 
-agesdataframe <- c("Centre.ID", "CO.ID", "age_category")
-agesdataframe <- participantsnoduplicates [, agesdataframe]
+participants$Age.category <-
+  cut(participants$Age,
+      breaks = c(0,10,20,30,40,50,60,70,80,90,100),
+      labels = c("0-10", "11-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100"))
 
-agespercentre <- agesdataframe %>%
-  group_by(Centre.ID, age_category) %>%
-  count() %>%
-  pivot_wider(names_from = age_category,
-              values_from = n)
+ages <- select(participants, Age.category,)
 
-ages <- select(participantsnoduplicates, c("Centre.ID", "CO.ID", "Date...CAH.Longitudinal.Data", "age_category"))
+age_stats <- ages %>%
+  group_by(Age.category) %>%
+  summarise(n = n())
 
-write.csv(ageframe, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/ageframe2022_2023.csv", row.names = F)
+write.csv(age_stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/age_stats.csv", row.names = F)
 
 # N.B: if an age category is empty here (i.e. no one of that age) then it is omitted from this table
 # need to add empty centres
@@ -1179,17 +1182,6 @@ Try re-naming columns in ^ tables to reflect biomarker
 ```
 
 *********************************
-
-
-
-
-
-
-
-
-
-
-
 
 ```{r}
 # proportionsummary <- participantsnoduplicates %>%
