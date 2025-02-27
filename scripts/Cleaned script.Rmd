@@ -482,14 +482,14 @@ all_prescriptions <- medprescriptions %>%
 
 prescriptions_last_12m <- medprescriptions %>%
   group_by(Medicine) %>%
-  filter(Date.of.Assessment > "2024-02-27") %>%
+  filter(Date.of.Assessment >= "2024-02-07") %>%
   summarise(n = n()) %>%
   pivot_wider(names_from = Medicine,
               values_from = n)
 
 prescriptions_1_to_5_yrs <- medprescriptions %>%
   group_by(Medicine) %>%
-  filter(Date.of.Assessment < "2024-02-27") %>%
+  filter(Date.of.Assessment < "2024-02-07") %>%
   summarise(n = n()) %>%
   pivot_wider(names_from = Medicine,
               values_from = n)
@@ -501,220 +501,222 @@ write.csv(prescriptions_last_12m, file = "C:/Users/md1rwe/Documents/Data extract
 
 write.csv(prescriptions_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prescriptions_1_to_5_yrs.csv", row.names = F)
 
-othermeds <- subset(medication_clean, medicine == "other")
+othermeds <- subset(medication_clean, Medicine == "Other")
 ```
 
 ```{r : prescriptions - values}
 
-# DIDNT RUN THIS IN FEB.
-
-# let's get stats for each centre for each medicine type
-
-# note here that 'number of prescription records' refers to the number of visits where a single patient was recorded to have been using the particular medicine.
-
-# start with hydro
-
-hydroframe <- subset(medication_clean, medicine == "hydrocortisone")
-
-hydrocortisonestats <- hydroframe %>%
-  group_by(Centre.ID) %>%
-  summarise(number_of_prescription_records = n_unique(coid_asse_id),
-            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
-            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
-            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
-            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
-            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
-            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
-  mutate_if(is.numeric, ~round(., 2))
-
-
-
-hydrocortisonestats <- hydrocortisonestats %>%
-  full_join(prescriptionsnoentries, hydrocortisonestats, by = "Centre.ID")
-hydrocortisonestats <- hydrocortisonestats [order(hydrocortisonestats$Centre.ID),]
-
-write.csv(hydrocortisonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/hydrocortisonestats.csv", row.names = F)
-
-# for time periods
-hydrocortisonestats_2023_2024 <- hydroframe %>%
-  group_by(Centre.ID) %>%
-  filter(assessment_date > "2023-12-01") %>%
-  summarise(number_of_prescription_records = n_unique(coid_asse_id),
-            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
-            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
-            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
-            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
-            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
-            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
-  mutate_if(is.numeric, ~round(., 2))
-
-hydrocortisonestats_2023_2024 <- hydrocortisonestats_2023_2024 %>%
-  full_join(prescriptionsnoentries, hydrocortisonestats_2023_2024, by = "Centre.ID")
-hydrocortisonestats_2023_2024 <- hydrocortisonestats_2023_2024 [order(hydrocortisonestats_2023_2024$Centre.ID),]
-
-write.csv(hydrocortisonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/hydrocortisonestats_2023_2024.csv", row.names = F)
-
-
-hydrocortisonestats_2022_2023 <- hydroframe %>%
-  group_by(Centre.ID) %>%
-  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
-  summarise(number_of_prescription_records = n_unique(coid_asse_id),
-            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
-            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
-            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
-            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
-            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
-            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
-  mutate_if(is.numeric, ~round(., 2))
-
-hydrocortisonestats_2022_2023 <- hydrocortisonestats_2022_2023 %>%
-  full_join(prescriptionsnoentries, hydrocortisonestats_2022_2023, by = "Centre.ID")
-hydrocortisonestats_2022_2023 <- hydrocortisonestats_2022_2023 [order(hydrocortisonestats_2022_2023$Centre.ID),]
-
-write.csv(hydrocortisonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/hydrocortisonestats_2022_2023.csv", row.names = F)
-
-
-# now let's do prednisolone
-predframe <- subset(medication_clean, medicine == "prednisolone")
-
-prednisolonestats <- predframe %>%
-  group_by(Centre.ID) %>%
-  summarise(number_of_prescription_records = n_unique(coid_asse_id),
-            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
-            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
-            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
-            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
-            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
-            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
-  mutate_if(is.numeric, ~round(., 2))
-
-prednisolonestats <- prednisolonestats %>%
-  full_join(prescriptionsnoentries, prednisolonestats, by = "Centre.ID")
-prednisolonestats <- prednisolonestats [order(prednisolonestats$Centre.ID),]
-
-write.csv(prednisolonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prednisolonestats.csv", row.names = F)
-
-# timeframes
-prednisolonestats_2023_2024 <- predframe %>%
-  group_by(Centre.ID) %>%
-  filter(assessment_date > "2023-12-01") %>%
-  summarise(number_of_prescription_records = n_unique(coid_asse_id),
-            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
-            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
-            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
-            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
-            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
-            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
-  mutate_if(is.numeric, ~round(., 2))
-
-prednisolonestats_2023_2024 <- prednisolonestats_2023_2024 %>%
-  full_join(prescriptionsnoentries, prednisolonestats_2023_2024, by = "Centre.ID")
-prednisolonestats_2023_2024 <- prednisolonestats_2023_2024 [order(prednisolonestats_2023_2024$Centre.ID),]
-
-write.csv(prednisolonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prednisolonestats_2023_2024.csv", row.names = F)
-
-
-prednisolonestats_2022_2023 <- predframe %>%
-  group_by(Centre.ID) %>%
-  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
-  summarise(number_of_prescription_records = n_unique(coid_asse_id),
-            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
-            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
-            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
-            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
-            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
-            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
-  mutate_if(is.numeric, ~round(., 2))
-
-prednisolonestats_2022_2023 <- prednisolonestats_2022_2023 %>%
-  full_join(prescriptionsnoentries, prednisolonestats_2022_2023, by = "Centre.ID")
-prednisolonestats_2022_2023 <- prednisolonestats_2022_2023 [order(prednisolonestats_2022_2023$Centre.ID),]
-
-write.csv(prednisolonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prednisolonestats_2022_2023.csv", row.names = F)
-
-
-# and dexamethasone
-dexframe <- subset(medication_clean, medicine == "dexamethasone")
-
-dexamethasonestats <- dexframe %>%
-  group_by(Centre.ID) %>%
-  summarise(number_of_prescription_records = n_unique(coid_asse_id),
-            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
-            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
-            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
-            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
-            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
-            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
-  mutate_if(is.numeric, ~round(., 2))
-
-dexamethasonestats <- dexamethasonestats %>%
-  full_join(prescriptionsnoentries, dexamethasonestats, by = "Centre.ID")
-dexamethasonestats <- dexamethasonestats [order(dexamethasonestats$Centre.ID),]
-
-write.csv(dexamethasonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/dexamethasonestats.csv", row.names = F)
-
-#time frames
-dexamethasonestats_2023_2024 <- dexframe %>%
-  group_by(Centre.ID) %>%
-  filter(assessment_date > "2023-12-01") %>%
-  summarise(number_of_prescription_records = n_unique(coid_asse_id),
-            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
-            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
-            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
-            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
-            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
-            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
-  mutate_if(is.numeric, ~round(., 2))
-
-dexamethasonestats_2023_2024 <- dexamethasonestats_2023_2024 %>%
-  full_join(prescriptionsnoentries, dexamethasonestats_2023_2024, by = "Centre.ID")
-dexamethasonestats_2023_2024 <- dexamethasonestats_2023_2024 [order(dexamethasonestats_2023_2024$Centre.ID),]
-
-write.csv(dexamethasonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/dexamethasonestats_2023_2024.csv", row.names = F)
-
-
-dexamethasonestats_2022_2023 <- dexframe %>%
-  group_by(Centre.ID) %>%
-  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
-  summarise(number_of_prescription_records = n_unique(coid_asse_id),
-            mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
-            median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
-            sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
-            min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
-            max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
-            average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
-  mutate_if(is.numeric, ~round(., 2))
-
-dexamethasonestats_2022_2023 <- dexamethasonestats_2022_2023 %>%
-  full_join(prescriptionsnoentries, dexamethasonestats_2022_2023, by = "Centre.ID")
-dexamethasonestats_2022_2023 <- dexamethasonestats_2022_2023 [order(dexamethasonestats_2022_2023$Centre.ID),]
-
-write.csv(dexamethasonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/dexamethasonestats_2022_2023.csv", row.names = F)
+# # DIDNT RUN THIS IN FEB.
+# 
+# # let's get stats for each centre for each medicine type
+# 
+# # note here that 'number of prescription records' refers to the number of visits where a single patient was recorded to have been using the particular medicine.
+# 
+# # start with hydro
+# 
+# hydroframe <- subset(medication_clean, medicine == "hydrocortisone")
+# 
+# hydrocortisonestats <- hydroframe %>%
+#   group_by(Centre.ID) %>%
+#   summarise(number_of_prescription_records = n_unique(coid_asse_id),
+#             mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+#             median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+#             sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+#             min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+#             max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+#             average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+#   mutate_if(is.numeric, ~round(., 2))
+# 
+# 
+# 
+# hydrocortisonestats <- hydrocortisonestats %>%
+#   full_join(prescriptionsnoentries, hydrocortisonestats, by = "Centre.ID")
+# hydrocortisonestats <- hydrocortisonestats [order(hydrocortisonestats$Centre.ID),]
+# 
+# write.csv(hydrocortisonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/hydrocortisonestats.csv", row.names = F)
+# 
+# # for time periods
+# hydrocortisonestats_2023_2024 <- hydroframe %>%
+#   group_by(Centre.ID) %>%
+#   filter(assessment_date > "2023-12-01") %>%
+#   summarise(number_of_prescription_records = n_unique(coid_asse_id),
+#             mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+#             median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+#             sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+#             min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+#             max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+#             average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+#   mutate_if(is.numeric, ~round(., 2))
+# 
+# hydrocortisonestats_2023_2024 <- hydrocortisonestats_2023_2024 %>%
+#   full_join(prescriptionsnoentries, hydrocortisonestats_2023_2024, by = "Centre.ID")
+# hydrocortisonestats_2023_2024 <- hydrocortisonestats_2023_2024 [order(hydrocortisonestats_2023_2024$Centre.ID),]
+# 
+# write.csv(hydrocortisonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/hydrocortisonestats_2023_2024.csv", row.names = F)
+# 
+# 
+# hydrocortisonestats_2022_2023 <- hydroframe %>%
+#   group_by(Centre.ID) %>%
+#   filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+#   summarise(number_of_prescription_records = n_unique(coid_asse_id),
+#             mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+#             median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+#             sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+#             min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+#             max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+#             average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+#   mutate_if(is.numeric, ~round(., 2))
+# 
+# hydrocortisonestats_2022_2023 <- hydrocortisonestats_2022_2023 %>%
+#   full_join(prescriptionsnoentries, hydrocortisonestats_2022_2023, by = "Centre.ID")
+# hydrocortisonestats_2022_2023 <- hydrocortisonestats_2022_2023 [order(hydrocortisonestats_2022_2023$Centre.ID),]
+# 
+# write.csv(hydrocortisonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/hydrocortisonestats_2022_2023.csv", row.names = F)
+# 
+# 
+# # now let's do prednisolone
+# predframe <- subset(medication_clean, medicine == "prednisolone")
+# 
+# prednisolonestats <- predframe %>%
+#   group_by(Centre.ID) %>%
+#   summarise(number_of_prescription_records = n_unique(coid_asse_id),
+#             mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+#             median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+#             sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+#             min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+#             max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+#             average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+#   mutate_if(is.numeric, ~round(., 2))
+# 
+# prednisolonestats <- prednisolonestats %>%
+#   full_join(prescriptionsnoentries, prednisolonestats, by = "Centre.ID")
+# prednisolonestats <- prednisolonestats [order(prednisolonestats$Centre.ID),]
+# 
+# write.csv(prednisolonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prednisolonestats.csv", row.names = F)
+# 
+# # timeframes
+# prednisolonestats_2023_2024 <- predframe %>%
+#   group_by(Centre.ID) %>%
+#   filter(assessment_date > "2023-12-01") %>%
+#   summarise(number_of_prescription_records = n_unique(coid_asse_id),
+#             mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+#             median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+#             sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+#             min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+#             max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+#             average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+#   mutate_if(is.numeric, ~round(., 2))
+# 
+# prednisolonestats_2023_2024 <- prednisolonestats_2023_2024 %>%
+#   full_join(prescriptionsnoentries, prednisolonestats_2023_2024, by = "Centre.ID")
+# prednisolonestats_2023_2024 <- prednisolonestats_2023_2024 [order(prednisolonestats_2023_2024$Centre.ID),]
+# 
+# write.csv(prednisolonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prednisolonestats_2023_2024.csv", row.names = F)
+# 
+# 
+# prednisolonestats_2022_2023 <- predframe %>%
+#   group_by(Centre.ID) %>%
+#   filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+#   summarise(number_of_prescription_records = n_unique(coid_asse_id),
+#             mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+#             median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+#             sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+#             min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+#             max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+#             average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+#   mutate_if(is.numeric, ~round(., 2))
+# 
+# prednisolonestats_2022_2023 <- prednisolonestats_2022_2023 %>%
+#   full_join(prescriptionsnoentries, prednisolonestats_2022_2023, by = "Centre.ID")
+# prednisolonestats_2022_2023 <- prednisolonestats_2022_2023 [order(prednisolonestats_2022_2023$Centre.ID),]
+# 
+# write.csv(prednisolonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prednisolonestats_2022_2023.csv", row.names = F)
+# 
+# 
+# # and dexamethasone
+# dexframe <- subset(medication_clean, medicine == "dexamethasone")
+# 
+# dexamethasonestats <- dexframe %>%
+#   group_by(Centre.ID) %>%
+#   summarise(number_of_prescription_records = n_unique(coid_asse_id),
+#             mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+#             median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+#             sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+#             min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+#             max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+#             average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+#   mutate_if(is.numeric, ~round(., 2))
+# 
+# dexamethasonestats <- dexamethasonestats %>%
+#   full_join(prescriptionsnoentries, dexamethasonestats, by = "Centre.ID")
+# dexamethasonestats <- dexamethasonestats [order(dexamethasonestats$Centre.ID),]
+# 
+# write.csv(dexamethasonestats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/dexamethasonestats.csv", row.names = F)
+# 
+# #time frames
+# dexamethasonestats_2023_2024 <- dexframe %>%
+#   group_by(Centre.ID) %>%
+#   filter(assessment_date > "2023-12-01") %>%
+#   summarise(number_of_prescription_records = n_unique(coid_asse_id),
+#             mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+#             median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+#             sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+#             min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+#             max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+#             average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+#   mutate_if(is.numeric, ~round(., 2))
+# 
+# dexamethasonestats_2023_2024 <- dexamethasonestats_2023_2024 %>%
+#   full_join(prescriptionsnoentries, dexamethasonestats_2023_2024, by = "Centre.ID")
+# dexamethasonestats_2023_2024 <- dexamethasonestats_2023_2024 [order(dexamethasonestats_2023_2024$Centre.ID),]
+# 
+# write.csv(dexamethasonestats_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/dexamethasonestats_2023_2024.csv", row.names = F)
+# 
+# 
+# dexamethasonestats_2022_2023 <- dexframe %>%
+#   group_by(Centre.ID) %>%
+#   filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
+#   summarise(number_of_prescription_records = n_unique(coid_asse_id),
+#             mean_daily_dose = mean(total_standardised_daily_dose, na.rm = T),
+#             median_daily_dose = median(total_standardised_daily_dose, na.rm = T),
+#             sd_daily_dose = sd(total_standardised_daily_dose, na.rm = T),
+#             min_daily_dose = min(total_standardised_daily_dose, na.rm = T),
+#             max_daily_dose = max(total_standardised_daily_dose, na.rm = T),
+#             average_number_of_doses_per_assessment = (length(assessment_entry) / n_unique(coid_asse_id))) %>%
+#   mutate_if(is.numeric, ~round(., 2))
+# 
+# dexamethasonestats_2022_2023 <- dexamethasonestats_2022_2023 %>%
+#   full_join(prescriptionsnoentries, dexamethasonestats_2022_2023, by = "Centre.ID")
+# dexamethasonestats_2022_2023 <- dexamethasonestats_2022_2023 [order(dexamethasonestats_2022_2023$Centre.ID),]
+# 
+# write.csv(dexamethasonestats_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/dexamethasonestats_2022_2023.csv", row.names = F)
 ```
 
 Let's try to work out how many patients are on a single medication or combined.
 Within medtherapy frame, each row shows all medications, recorded in a single visit, taken in a single day by a single patient.
 ~ need to be careful when one patient has more than one visit in the same timeframe because each visit will be its own row of data and will be counted as two separate people...
 ```{r : medication therapies}
-# make a new data frame with just medicine type
-medtherapy <- select(meds_wide, c("Centre.ID_1", "CO.ID", "assessment_id", "meds_assessment_date", "coid_asse_id_1", "medicine_1", "medicine_2", "medicine_3", "medicine_4", "medicine_5", "medicine_6"))
+# # DIDN'T RUN IN FEB
+# 
+# # make a new data frame with just medicine type
+# medtherapy <- select(meds_wide, c("Centre.ID_1", "CO.ID", "assessment_id", "meds_assessment_date", "coid_asse_id_1", "medicine_1", "medicine_2", "medicine_3", "medicine_4", "medicine_5", "medicine_6"))
 
-# need to work out how to make a legit output for seeing how many patients are on multiple medications simletaneously, but for now, this code works. Just count the number of occurances of 8 (multiple medications) vs 7
+# # need to work out how to make a legit output for seeing how many patients are on multiple medications simletaneously, but for now, this code works. Just count the number of occurances of 8 (multiple medications) vs 7
+# 
+# apply(medtherapy, 1, function(x) length (unique(x)))
+# 
+# # therefore, in this case, there are four 8s which means that 4/112 patients from 2022-2024 are on multiple medications.
 
-apply(medtherapy, 1, function(x) length (unique(x)))
-
-# therefore, in this case, there are four 8s which means that 4/112 patients from 2022-2024 are on multiple medications.
-
-medtherapy_2023_2024 <- medtherapy %>%
-  filter(meds_assessment_date > "2023-12-01")
-apply(medtherapy_2023_2024, 1, function(x) length (unique(x)))
-# in 2023_2024, there are three 8s which means that 3/63 patients are on multiple medications (HC & prednisolone)
+# medtherapy_2023_2024 <- medtherapy %>%
+#   filter(meds_assessment_date > "2023-12-01")
+# apply(medtherapy_2023_2024, 1, function(x) length (unique(x)))
+# # in 2023_2024, there are three 8s which means that 3/63 patients are on multiple medications (HC & prednisolone)
 
 
-medtherapy_2022_2023 <- medtherapy %>%
-  filter(meds_assessment_date < "2023-12-01" & meds_assessment_date > "2022-12-01")
-apply(medtherapy_2022_2023, 1, function(x) length (unique(x)))
-# in 2022_2023, there is one 8 which means that 1/49 patients are on multiple medications (HC & prednisolone)
+# medtherapy_2022_2023 <- medtherapy %>%
+#   filter(meds_assessment_date < "2023-12-01" & meds_assessment_date > "2022-12-01")
+# apply(medtherapy_2022_2023, 1, function(x) length (unique(x)))
+# # in 2022_2023, there is one 8 which means that 1/49 patients are on multiple medications (HC & prednisolone)
 
 
 # https://stackoverflow.com/questions/74737100/how-to-check-if-multiple-columns-are-row-wise-equivalent-ignoring-na-values
@@ -769,6 +771,20 @@ CAH_biomarkers_order <- c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-
 CAH_biomarkers <- CAH_biomarkers[, CAH_biomarkers_order]
 
 write.csv(CAH_biomarkers, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers.csv", row.names = F)
+
+
+# Now time frames
+CAH_biomarkers$Date <- as.Date(CAH_biomarkers$Date, format = "%d/%m/%Y")
+
+CAH_biomarkers_last12m <- CAH_biomarkers %>%
+  filter(Date >= "2024-02-07")
+
+CAH_biomarkers_1_to_5_yrs <- CAH_biomarkers %>%
+  filter(Date < "2024-02-07")
+
+write.csv(CAH_biomarkers_last12m, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers_last12m.csv", row.names = F, na = "")
+
+write.csv(CAH_biomarkers_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers_1_to_5_yrs.csv", row.names = F, na = "")
 ```
 
 Let's add BMI to labs frame could be added to meds or labs, but for ease I'll add it here to labs :).
