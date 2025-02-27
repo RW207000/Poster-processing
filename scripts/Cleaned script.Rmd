@@ -306,22 +306,22 @@ participants$Age.category <-
 
 ages <- select(participants, Age.category,)
 
-age_stats <- ages %>%
+age_distribution <- ages %>%
   group_by(Age.category) %>%
   summarise(n = n())
 
-write.csv(age_stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/age_stats.csv", row.names = F)
+write.csv(age_distribution, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/age_distribution.csv", row.names = F)
 
 # N.B: if an age category is empty here (i.e. no one of that age) then it is omitted from this table
-# need to add empty centres
-# add in proportions - have done this on excel for now.
 ```
 
 ```{r : age stats}
-age_stats <- participantsnoduplicates %>%
-  summarise(median_age = median(participantsnoduplicates$Current_age_years),
-            max_age = max(participantsnoduplicates$Current_age_years),
-            min_age = min(participantsnoduplicates$Current_age_years))
+age_stats <- participants %>%
+  summarise(median_age = median(participants$Age),
+            max_age = max(participants$Age),
+            min_age = min(participants$Age))
+
+write.csv(age_stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/age_stats.csv", row.names = F)
 ```
 
 
