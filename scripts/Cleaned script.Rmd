@@ -320,6 +320,8 @@ age_stats <- participantsnoduplicates %>%
             max_age = max(participantsnoduplicates$Current_age_years),
             min_age = min(participantsnoduplicates$Current_age_years))
 ```
+
+
 *********************************
 *********************************
 ------Medication: cleaning ------
@@ -331,46 +333,32 @@ medication_clean <- medication
 medication_clean$coid_asse_id <- paste(medication_clean$CO.ID, medication_clean$assessment_id)
 
 # note column is always empty / "NULL", so remove it
-medication_clean <- select(medication_clean, -"note")
-```
-
-Check for typos in medicine
-```{r : clean medicine typos}
-table(medication_clean$medicine)
-
-medication_clean$medicine <-
-  ifelse(medication_clean$medicine == "prednisone",
-         as.character("prednisolone"),
-         as.character(medication_clean$medicine))
-
-
-# check the spelling correction has worked
-table(medication_clean$medicine)
+medication_clean <- select(medication_clean, -"Note")
 ```
 
 Now let's check what units have been used to see if we need to standardise any...
 Assuming that NULL units are also mg.
 ```{r : clean medication units}
 print("Let's see which units have been used:")
-table(medication_clean$unit)
+table(medication_clean$Unit)
 
 # identify entries which used anomalous units
-units_mcg <- subset(medication_clean, unit == "mcg")
+units_mcg <- subset(medication_clean, Unit == "mcg")
 
 #correct the dose value by /1000 (mcg to mg)
-medication_clean$dose <-
-  ifelse(medication_clean$unit == "mcg",
-         as.numeric(medication_clean$dose) / 1000,
-         as.numeric(medication_clean$dose))
+medication_clean$Dose <-
+  ifelse(medication_clean$Unit == "mcg",
+         as.numeric(medication_clean$Dose) / 1000,
+         as.numeric(medication_clean$Dose))
 
 #correct the unit name (also include the NULL units here) - MIGHT WANT TO REMOVE THIS TO ALLOW QUALITY CHECKING LATER - MAYBE SOME ENTRIES INCLUDE MCG VALUES BUT SAY THEY'RE MG...
-medication_clean$unit <-
-  ifelse(medication_clean$unit == "mcg" | medication_clean$unit == "NULL",
+medication_clean$Unit <-
+  ifelse(medication_clean$Unit == "mcg" | medication_clean$Unit == "NULL",
          as.character("mg"),
-         as.character(medication_clean$unit))
+         as.character(medication_clean$Unit))
 
 #checking that all units are the same (mcg)
-table(medication_clean$unit)
+table(medication_clean$Unit)
 ```
 
 For direct medication comparisons to be useful, we need to convert prednisolone and dexamethasone doses to HC equivalent doses.
@@ -378,14 +366,17 @@ For direct medication comparisons to be useful, we need to convert prednisolone 
 prednisoloneratio <- 5
 dexamethasoneratio <- 80
 
-medication_clean$standardised.doses <- 
-  ifelse(medication_clean$medicine == "hydrocortisone", medication$dose, NA)
+medication_clean$Standardised.doses <- NA
+medication_clean$Standardised.doses <- as.character(medication_clean$Standardised.doses)
 
-medication_clean$standardised.doses <- 
-  ifelse(medication_clean$medicine == "prednisolone", (as.numeric(medication_clean$dose) * prednisoloneratio), medication_clean$standardised.doses)
+medication_clean$Standardised.doses <- 
+  ifelse(medication_clean$Medicine == "hydrocortisone", medication_clean$Dose, NA)
 
-medication_clean$standardised.doses <- 
-  ifelse(medication_clean$medicine == "dexamethasone", (as.numeric(medication_clean$dose) * dexamethasoneratio), medication_clean$standardised.doses)
+medication_clean$Standardised.doses <- 
+  ifelse(medication_clean$Medicine == "prednisolone", (as.numeric(medication_clean$Dose) * prednisoloneratio), medication_clean$Standardised.doses)
+
+medication_clean$Standardised.doses <- 
+  ifelse(medication_clean$Medicine == "dexamethasone", (as.numeric(medication_clean$Dose) * dexamethasoneratio), medication_clean$Standardised.doses)
 ```
 
 
@@ -441,13 +432,11 @@ medication_clean$dose_time_hours <- as.numeric(medication_clean$time / 3600)
 *********************************
 *********************************
 ------Medication: making meds_wide ------
-
-
 A single patient visit may have more than one entry in the medication frame (multiple entries for multiple doses recorded at the same visit). Therefore, we need to widen the medication frame to put each duplicate visit for a new dose into a single row for a single visit.
 ```{r : making meds_wide}
 medication_clean$assessment_entry <-
   ave(medication_clean$CO.ID,
-      medication_clean$assessment_id,
+      medication_clean$Assessment.ID,
       FUN = seq_along)
 
 totalmed_1st_entry <- 
@@ -857,35 +846,39 @@ apply(medtherapy_2022_2023, 1, function(x) length (unique(x)))
 ------Medication: making labs_wide ------
 
 ```{r : labs_wide, include=FALSE}
-valuesdrop <- c("result", "date_and_time")
+valuesdrop <- c("Result", "assessments.content.labs.date_and_time_lab", "Time")
 labsvalues <- labs[, !names(labs) %in% valuesdrop]
 labsvalues <- labsvalues %>%
-  pivot_wider(names_from = "labs_type",
-              values_from = "value")
+  pivot_wider(names_from = "Type",
+              values_from = "Value")
 
-interpdrop <- c("value", "date_and_time")
+interpdrop <- c("Value", "assessments.content.labs.date_and_time_lab", "Time")
 labsinterp <- labs[, !names(labs) %in% interpdrop]
 labsinterp <- labsinterp %>%
-  pivot_wider(names_from = "labs_type",
-              values_from = "result")
+  pivot_wider(names_from = "Type",
+              values_from = "Result")
 
-labs_wide <- left_join(labsvalues, labsinterp, by = c("CO.ID", "assessment_id", "assessment_date", "Centre.ID"))
+labs_wide <- left_join(labsvalues, labsinterp, by = c("CO.ID", "Assessment.ID", "Date"))
 
 names(labs_wide) <- gsub(x = names(labs_wide), pattern = ".x",
                         replacement = ".value")
 names(labs_wide) <- gsub(x = names(labs_wide), pattern = ".y",
                         replacement = ".interpretation")
-
 ```
 
 Reorder columns so that lab value and interpretation are next to eachother.
 Check which columns are missing and remove so this can work.
 ```{r : putting lab values and interps next to eachother}
-# labsorder <- c("Centre.ID", "CO.ID", "date_of_birth.value", "assessment_id", "assessment_date", "total_testosterone.value", "total_testosterone.interpretation", "sodium.value", "sodium.interpretation", "potassium.value", "potassium.interpretation", "acth.value", "acth.interpretation", "cortisol.value", "cortisol.interpretation", "glucose.value", "glucose.interpretation", "renin.value", "renin.interpretation", "ohp17.value", "ohp17.interpretation", "andostenedione.value", "andostenedione.interpretation", "shbg.value", "shbg.interpretation", "haemoglobin.value", "haemoglobin.interpretation", "haematocrit.value", "haematocrit.interpretation", "lh.value", "lh.interpretation", "fsh.value", "fsh.interpretation", "dheas.value", "dheas.interpretation","oestradiol.value", "oestradiol.interpretation", "progesterone.value", "progesterone.interpretation", "plasma_renin_activi.interpretation.value", "plasma_renin_activi.interpretation.interpretation", "urine_steroids_.interpretation_gcms.value", "urine_steroids_.interpretation_gcms.interpretation", "di.interpretationdrotestosterone.value", "di.interpretationdrotestosterone.interpretation")
+# labsorder <- c("CO.ID", "Assessment.ID", "Date", "Total_testosterone.value", "Total_testosterone.interpretation", "Sodium.value", "Sodium.interpretation", "Potassium.value", "Potassium.interpretation", "acth.value", "acth.interpretation", "cortisol.value", "cortisol.interpretation", "glucose.value", "glucose.interpretation", "renin.value", "renin.interpretation", "ohp17.value", "ohp17.interpretation", "andostenedione.value", "andostenedione.interpretation", "shbg.value", "shbg.interpretation", "haemoglobin.value", "haemoglobin.interpretation", "haematocrit.value", "haematocrit.interpretation", "lh.value", "lh.interpretation", "fsh.value", "fsh.interpretation", "dheas.value", "dheas.interpretation","oestradiol.value", "oestradiol.interpretation", "progesterone.value", "progesterone.interpretation", "plasma_renin_activi.interpretation.value", "plasma_renin_activi.interpretation.interpretation", "urine_steroids_.interpretation_gcms.value", "urine_steroids_.interpretation_gcms.interpretation", "di.interpretationdrotestosterone.value", "di.interpretationdrotestosterone.interpretation")
 # labs_wide <- labs_wide[, labsorder]
 ```
+Let's extract required labs info for CAH biomarkers 17-OHP and andro
+```{r : labs biomarker subset}
+CAH_biomarkers <- select(labs_wide, c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.interpretation"))
 
 
+write.csv(CAH_biomarkers, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers.csv", row.names = F)
+```
 
 Let's add BMI to labs frame could be added to meds or labs, but for ease I'll add it here to labs :).
 
@@ -895,40 +888,6 @@ overallvisitsstats$number_of_labs_entries <- length(labs_wide$CO.ID)
 overallvisitsstats$number_of_lab_patients <- n_unique(labs_wide$CO.ID)
 write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/overallvisitsstats.csv", row.names = F)
 
-labentries2022_2023 <- labs_wide %>%
-  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
-  group_by(Centre.ID) %>%
-  summarise("Number of lab entries (2022-2023)" = n())
-
-medentries2022_2023 <- meds_wide %>%
-  filter(meds_assessment_date < "2023-12-01" & meds_assessment_date > "2022-12-01") %>%
-  group_by(Centre.ID_1) %>%
-  summarise("Number of med entries (2022-2023)" = n()) %>%
-  rename("Centre.ID" = "Centre.ID_1")
-  
-overallvisitspercentre_2022_2023 <- full_join(overallvisitspercentre_2022_2023, labentries2022_2023)
-overallvisitspercentre_2022_2023 <- full_join(overallvisitspercentre_2022_2023, medentries2022_2023)
-
-
-labentries2023_2024 <- labs_wide %>%
-  filter(assessment_date > "2023-12-01") %>%
-  group_by(Centre.ID) %>%
-  summarise("Number of lab entries (2023-2024)" = n())
-
-medentries2023_2024 <- meds_wide %>%
-  filter(meds_assessment_date > "2023-12-01") %>%
-  group_by(Centre.ID_1) %>%
-  summarise("Number of med entries (2023-2024)" = n()) %>%
-  rename("Centre.ID" = "Centre.ID_1")
-
-overallvisitspercentre_2023_2024 <- full_join(overallvisitspercentre_2023_2024, labentries2023_2024)
-overallvisitspercentre_2023_2024 <- full_join(overallvisitspercentre_2023_2024, medentries2023_2024)
-
-entryrecords <- full_join(overallvisitspercentre_2022_2023, overallvisitspercentre_2023_2024)
-entryrecords <- entryrecords [order(entryrecords$Centre.ID),]
-
-write.csv(overallvisitspercentre_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/overallvisitspercentre_2022_2023.csv", row.names = F)
-write.csv(overallvisitspercentre_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/overallvisitspercentre_2023_2024.csv", row.names = F)
 write.csv(entryrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/entryrecords.csv", row.names = F)
 ```
 
