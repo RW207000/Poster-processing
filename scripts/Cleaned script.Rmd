@@ -793,28 +793,70 @@ Add labs stats onto 'overall visit stats' and make new frames for per centre.
 ```{r}
 overallvisitsstats$number_of_labs_entries <- length(labs_wide$CO.ID)
 overallvisitsstats$number_of_lab_patients <- n_unique(labs_wide$CO.ID)
+
 write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/overallvisitsstats.csv", row.names = F)
-
-write.csv(entryrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/entryrecords.csv", row.names = F)
 ```
+BMI info
+```{r : BMI}
+BMIframe <- select(longitudinal, c("Assessment.ID", "Date.of.Assessment", "BMI"))
 
+BMIframe$Class <- ""
+BMIframe$Class [BMIframe$BMI <18.5] <- "Underweight"
+BMIframe$Class [BMIframe$BMI >= 18.5 & BMIframe$BMI <25] <- "Normal"
+BMIframe$Class [BMIframe$BMI >= 25 & BMIframe$BMI <30] <- "Overweight"
+BMIframe$Class [BMIframe$BMI >=30 & BMIframe$BMI <35] <- "Obese"
+BMIframe$Class [BMIframe$BMI >=35] <- "Extremely obese"
+BMIframe$Class[BMIframe$Class == ""] <- "Missing"
+
+BMIstats <- BMIframe %>%
+  group_by(Class) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = "Class",
+              values_from = "n") %>%
+  select(1,4,5,6,3,2)
+
+# time frames
+BMIframe_last_12m <- BMIframe %>%
+  filter(Date.of.Assessment >= "2024-02-07")
+
+BMIstats_last_12m <- BMIframe_last_12m %>%
+  group_by(Class) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = "Class",
+              values_from = "n") %>%
+  select(1,4,5,6,3,2)
+
+BMIframe_1_to_5_yrs <- BMIframe %>%
+  filter(Date.of.Assessment < "2024-02-07")
+
+BMIstats_1_to_5_yrs <- BMIframe_1_to_5_yrs %>%
+  group_by(Class) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = "Class",
+              values_from = "n") %>%
+  select(1,4,5,6,3,2)
+
+write.csv(BMIstats_last_12m, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/BMIstats_last_12m.csv", row.names = F, na = "")
+
+write.csv(BMIstats_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/BMIstats_1_to_5_yrs.csv", row.names = F, na = "")
+```
 
 ```{r : adding BMI data to labs_wide}
-labs_wide$coid_assedate <- paste(labs_wide$CO.ID, labs_wide$assessment_date)
-labs_wide$BMI <- NULL
-
-ii <- 1
-for (ID in labs_wide$coid_assedate) {
-  BMI <- participantsnoduplicates$BMI...CAH.Longitudinal.Data[participantsnoduplicates$coid_assedate == ID]
-  if(!is_empty(BMI)){
-  labs_wide$BMI [ii] <- BMI}
-  ii <- ii + 1
-}
+# labs_wide$coid_assedate <- paste(labs_wide$CO.ID, labs_wide$assessment_date)
+# labs_wide$BMI <- NULL
+# 
+# ii <- 1
+# for (ID in labs_wide$coid_assedate) {
+#   BMI <- participantsnoduplicates$BMI...CAH.Longitudinal.Data[participantsnoduplicates$coid_assedate == ID]
+#   if(!is_empty(BMI)){
+#   labs_wide$BMI [ii] <- BMI}
+#   ii <- ii + 1
+# }
 ```
 
 
-Let's
 ```{r : BMI stats, include=FALSE}
+# NOT RUN IN FEB 2025
 BMIframe <- select(labs_wide, c("Centre.ID", "assessment_date", "coid_assedate", "BMI"))
 
 BMIframe$Class <- ""
