@@ -841,6 +841,14 @@ write.csv(BMIstats_last_12m, file = "C:/Users/md1rwe/Documents/Data extractions 
 write.csv(BMIstats_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/BMIstats_1_to_5_yrs.csv", row.names = F, na = "")
 ```
 
+```{r : blood pressure}
+# just need to extract blood pressure columns
+blood_pressures <- select(longitudinal, c("Assessment.ID", "CO.ID", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure"))
+
+write.csv(blood_pressures, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/blood_pressures.csv", row.names = F)
+```
+
+
 ```{r : adding BMI data to labs_wide}
 # labs_wide$coid_assedate <- paste(labs_wide$CO.ID, labs_wide$assessment_date)
 # labs_wide$BMI <- NULL
