@@ -448,7 +448,7 @@ medperpatient$number_of_doses <- medication_clean %>%
 Start with working out how many visits each participant had where medication data was recorded
 ```{r : medication entries}
 medicationentries <- medication_clean %>%
-  group_by(assessment_id) %>%
+  group_by(Assessment.ID) %>%
   summarise(n = n())
 ```
 
@@ -466,20 +466,22 @@ medication_clean$prescribedmedperpatient <- paste(medication_clean$coid_asse_id,
   
 medprescriptions <- subset(medication_clean, assessment_entry == 1)
 
-prescriptions <- medprescriptions %>%
-  group_by(Centre.ID, medicine) %>%
+all_prescriptions <- medprescriptions %>%
+  group_by(Medicine) %>%
   summarise(n = n()) %>%
-  pivot_wider(names_from = medicine,
+  pivot_wider(names_from = Medicine,
               values_from = n) %>%
   select(1,2,5,4,3)
 
-prescriptionsnoentries <-  as.data.frame(anti_join(centreIDs2022_2024, prescriptions, by = "Centre.ID"))
+test2 <- select(longitudinal, c("Assessment.ID", "Date.of.Assessment"))
+test2 <- test2 %>%
+  rename("assessment_id" = "Assessment.ID")
 
-prescriptions <- prescriptions %>%
-  full_join(prescriptionsnoentries, prescriptions, by = "Centre.ID")
-prescriptions <- prescriptions [order(prescriptions$Centre.ID),]
+meds_wide <- left_join(meds_wide, test2, by = c("assessment_id"))
 
-write.csv(prescriptions, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prescriptions.csv", row.names = F)
+
+
+write.csv(all_prescriptions, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_prescriptions.csv", row.names = F)
 
 prescriptions_2023_2024 <- medprescriptions %>%
   group_by(Centre.ID, medicine) %>%
