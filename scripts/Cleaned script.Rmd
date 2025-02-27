@@ -207,7 +207,6 @@ write.csv(sex, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb
 
 
 Let's do the same for visit statistics.
-MADE CHANGES - CHECK! :)
 ```{r : visit statistics}
 visitsperparticipant <- participantsnoduplicates %>%
   group_by(CO.ID) %>%
@@ -235,19 +234,9 @@ centres_no_entries <- as.data.frame(anti_join(centreIDs, visitspercentre, by = "
 visitspercentre <- full_join(visitspercentre, centres_no_entries, by = "Centre.ID")
 visitspercentre <- visitspercentre [order(visitspercentre$Centre.ID),]
 
-
-centres_no_entries_23_24 <- as.data.frame(anti_join(centreIDs, visitstatspercentre_Dec2023_Dec2024, by = "Centre.ID"))
-
-visitstatspercentre_Dec2023_Dec2024 <- full_join(visitstatspercentre_Dec2023_Dec2024, centres_no_entries_23_24, by = "Centre.ID")
-visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 [order(visitstatspercentre_Dec2023_Dec2024$Centre.ID),]
-
-
-centres_no_entries_22_23 <- as.data.frame(anti_join(centreIDs, visitstatspercentre_Dec2022_Dec2023, by = "Centre.ID"))
-
-visitstatspercentre_Dec2022_Dec2023 <- full_join(visitstatspercentre_Dec2022_Dec2023, centres_no_entries_22_23, by = "Centre.ID")
-visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 [order(visitstatspercentre_Dec2022_Dec2023$Centre.ID),]
-
 # having establised which centres from the full list of 18 have not uploaded data in the time frames of interest, I'll create a new frame with just the 'active' centres in to use in data frames from here onwards.
+
+# keep this in but change for single time frame
 centreIDs2022_2024 <- visitspercentre[!with(visitspercentre, is.na(visitspercentre$number_of_patient_visits_Dec2022_Dec2023) & is.na(visitspercentre$number_of_patient_visits_Dec2023_Dec2024)),]
 
 centreIDs2022_2024 <- as.data.frame(unique(centreIDs2022_2024$Centre.ID))
@@ -267,34 +256,10 @@ overallpatientspercentre <- participantsnoduplicates %>%
 centres_no_patients <- as.data.frame(anti_join(centreIDs, overallpatientspercentre, by = "Centre.ID"))
 overallpatientspercentre <- full_join(overallpatientspercentre, centres_no_patients, by = "Centre.ID")
 overallpatientspercentre <- overallpatientspercentre [order(overallpatientspercentre$Centre.ID),]
-
-patientspercentre_Dec2023_Dec2024 <- participantsnoduplicates %>%
-  group_by(Centre.ID) %>%
-  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
-  summarise(n_distinct(CO.ID)) %>%
-  rename("number_of_patients_Dec2023_Dec2024" = "n_distinct(CO.ID)")
-
-centres_no_patients_23_24 <- as.data.frame(anti_join(centreIDs, patientspercentre_Dec2023_Dec2024, by = "Centre.ID"))
-patientspercentre_Dec2023_Dec2024 <- full_join(patientspercentre_Dec2023_Dec2024, centres_no_patients_23_24, by = "Centre.ID")
-patientspercentre_Dec2023_Dec2024 <- patientspercentre_Dec2023_Dec2024 [order(patientspercentre_Dec2023_Dec2024$Centre.ID),]
-
-
-patientspercentre_Dec2022_Dec2023 <- participantsnoduplicates %>%
-  group_by(Centre.ID) %>%
-  filter(Date...CAH.Longitudinal.Data < "2023-12-01") %>%
-  summarise(n_distinct(CO.ID)) %>%
-  rename("number_of_patients_Dec2022_Dec2023" = "n_distinct(CO.ID)")
-
-centres_no_patients_22_23 <- as.data.frame(anti_join(centreIDs, patientspercentre_Dec2022_Dec2023, by = "Centre.ID"))
-patientspercentre_Dec2022_Dec2023 <- full_join(patientspercentre_Dec2022_Dec2023, centres_no_patients_22_23, by = "Centre.ID")
-patientspercentre_Dec2022_Dec2023 <- patientspercentre_Dec2022_Dec2023 [order(patientspercentre_Dec2022_Dec2023$Centre.ID),]
-
-patientspercentre <- full_join(patientspercentre_Dec2022_Dec2023, patientspercentre_Dec2023_Dec2024, by = "Centre.ID")
-patientspercentre <- full_join(patientspercentre, centres_no_entries, by = "Centre.ID")
-patientspercentre <- patientspercentre [order(patientspercentre$Centre.ID),]
 ```
 
 ```{r : adding in number of patients registered on I-CAH to visitstats}
+# maybe keep but just apply to overall data
 visitstatspercentre_Dec2023_Dec2024 <- full_join(visitstatspercentre_Dec2023_Dec2024, overallpatientspercentre, by = "Centre.ID")
 visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 [, c(1,9,2:8)]
 visitstatspercentre_Dec2023_Dec2024 <- visitstatspercentre_Dec2023_Dec2024 %>%
@@ -320,8 +285,7 @@ centredata <- centredata[, c(1,2,4,3,5)]
 write.csv(centredata, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs//centredata.csv", row.names = F)
 ```
 
-Age distribution don't really need to be included in the time split categories so let's just make one data frame showing age distributions of patients for each centre.
-Can add in time frames if needed.
+Age distributions
 ```{r : age distributions}
 participantsnoduplicates$DOB <- as.Date(participantsnoduplicates$Date.of.birth...Birth, format = "%d/%m/%Y")
 
@@ -343,28 +307,13 @@ agespercentre <- agesdataframe %>%
 
 ages <- select(participantsnoduplicates, c("Centre.ID", "CO.ID", "Date...CAH.Longitudinal.Data", "age_category"))
 
-ageframe2022_2023 <- ages %>%
-  filter(Date...CAH.Longitudinal.Data < "2023-12-01" & Date...CAH.Longitudinal.Data > "2022-12-01") %>%
-  group_by(Centre.ID, age_category) %>%
-  summarise(n = n()) %>%
-  pivot_wider(names_from = age_category,
-              values_from = n)
-
-ageframe2023_2024 <- ages %>%
-  filter(Date...CAH.Longitudinal.Data > "2023-12-01") %>%
-  group_by(Centre.ID, age_category) %>%
-  summarise(n = n()) %>%
-  pivot_wider(names_from = age_category,
-              values_from = n)
-
-
-write.csv(ageframe2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/ageframe2022_2023.csv", row.names = F)
-write.csv(ageframe2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/ageframe2023_2024.csv", row.names = F)
+write.csv(ageframe, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/ageframe2022_2023.csv", row.names = F)
 
 # N.B: if an age category is empty here (i.e. no one of that age) then it is omitted from this table
 # need to add empty centres
 # add in proportions - have done this on excel for now.
 ```
+
 ```{r : age stats}
 age_stats <- participantsnoduplicates %>%
   summarise(median_age = median(participantsnoduplicates$Current_age_years),
