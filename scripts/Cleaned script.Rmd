@@ -273,33 +273,28 @@ medication_clean$Standardised.doses <-
   ifelse(medication_clean$Medicine == "Dexamethasone", (as.numeric(medication_clean$Dose) * dexamethasoneratio), medication_clean$Standardised.doses)
 ```
 
-
 To check that the modified values seem sensible, let's run some basic stats to check for outliers/abnormal values.
 I DON'T REALLY KNOW WHAT ARE SENSIBLE RANGES/VALUES...
 ```{r : basic med stats for outliers}
-medication_clean$standardised.doses <- as.numeric(medication_clean$standardised.doses)
-
 # Let's do it first using individual doses
 checkmedstats <- medication_clean %>%
-  group_by(medicine) %>%
-  summarise(mean_dose = mean(standardised.doses, na.rm = TRUE),
-            median_dose = median(standardised.doses, na.rm = TRUE),
-            sd_dose = sd(standardised.doses, na.rm = TRUE),
-            min_dose = min(standardised.doses, na.rm = TRUE),
-            max_dose = max(standardised.doses, na.rm = TRUE)) %>%
+  group_by(Medicine) %>%
+  summarise(mean_dose = mean(Standardised.doses, na.rm = TRUE),
+            median_dose = median(Standardised.doses, na.rm = TRUE),
+            sd_dose = sd(Standardised.doses, na.rm = TRUE),
+            min_dose = min(Standardised.doses, na.rm = TRUE),
+            max_dose = max(Standardised.doses, na.rm = TRUE)) %>%
   mutate_if(is.numeric, ~round(., 2))
 
 # Now let's do it for total_daily_doses
-medication_clean$dose <- as.numeric(medication_clean$dose)
-
 medperpatient <- medication_clean %>%
-  group_by(assessment_id) %>%
-  summarise(total_standardised_daily_dose = sum(standardised.doses, na.rm = TRUE))
+  group_by(Assessment.ID) %>%
+  summarise(total_standardised_daily_dose = sum(Standardised.doses, na.rm = TRUE))
 
-medication_clean <- full_join(medication_clean, medperpatient, by = "assessment_id")
+medication_clean <- full_join(medication_clean, medperpatient, by = "Assessment.ID")
 
 checkdailymedstats <- medication_clean %>%
-  group_by(medicine) %>%
+  group_by(Medicine) %>%
   summarise(mean_standardised_dose = mean(total_standardised_daily_dose, na.rm = TRUE),
             median_standardised_dose = median(total_standardised_daily_dose, na.rm = TRUE),
             sd_standardised_dose = sd(total_standardised_daily_dose, na.rm = TRUE),
@@ -309,19 +304,15 @@ checkdailymedstats <- medication_clean %>%
 ```
 
 ```{r : time of medication dose}
-medication_clean$time <-
-  ifelse(medication_clean$time!=0,
-         as.numeric(medication_clean$time),
+medication_clean$Time <-
+  ifelse(medication_clean$Time!=0,
+         as.numeric(medication_clean$Time),
          NA)
 
-medication_clean$dose_time_hours <- as.numeric(medication_clean$time / 3600)
+medication_clean$dose_time_hours <- as.numeric(medication_clean$Time / 3600)
 
 # times show up as 8.0 (for 8am), 21.0 (for 9pm) etc. This is useful for subsequent analysis using time :)
 ```
-
-
-*****************************
-
 
 *********************************
 *********************************
@@ -393,53 +384,52 @@ colnames(totalmed_6th_entry) <-
 
 totalmed_1st_entry <- totalmed_1st_entry %>%
   rename("CO.ID" = "CO.ID_1",
-         "assessment_id" = "assessment_id_1",
-         "meds_assessment_date" = "assessment_date_1")
+         "assessment_id" = "Assessment.ID_1")
 
 totalmed_2nd_entry <- totalmed_2nd_entry %>%
   rename("CO.ID" = "CO.ID_2",
-         "assessment_id" = "assessment_id_2",
-         "meds_assessment_date" = "assessment_date_2")
+         "assessment_id" = "Assessment.ID_2")
 
 totalmed_3rd_entry <- totalmed_3rd_entry %>%
   rename("CO.ID" = "CO.ID_3",
-         "assessment_id" = "assessment_id_3",
-         "meds_assessment_date" = "assessment_date_3")
+         "assessment_id" = "Assessment.ID_3")
 
 totalmed_4th_entry <- totalmed_4th_entry %>%
   rename("CO.ID" = "CO.ID_4",
-         "assessment_id" = "assessment_id_4",
-         "meds_assessment_date" = "assessment_date_4")
+         "assessment_id" = "Assessment.ID_4")
 
 totalmed_5th_entry <- totalmed_5th_entry %>%
   rename("CO.ID" = "CO.ID_5",
-         "assessment_id" = "assessment_id_5",
-         "meds_assessment_date" = "assessment_date_5")
+         "assessment_id" = "Assessment.ID_5")
 
 totalmed_6th_entry <- totalmed_6th_entry %>%
   rename("CO.ID" = "CO.ID_6",
-         "assessment_id" = "assessment_id_6",
-         "meds_assessment_date" = "assessment_date_6")
+         "assessment_id" = "Assessment.ID_6")
 ```
 
 ```{r : joining widened med frames together}
 meds_wide <- totalmed_1st_entry %>%
-  left_join(totalmed_2nd_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date")) %>%
-  left_join(totalmed_3rd_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date")) %>%
-  left_join(totalmed_4th_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date")) %>%
-  left_join(totalmed_5th_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date")) %>%
-  left_join(totalmed_6th_entry, by=c("CO.ID", "assessment_id", "meds_assessment_date"))
+  left_join(totalmed_2nd_entry, by=c("CO.ID", "assessment_id")) %>%
+  left_join(totalmed_3rd_entry, by=c("CO.ID", "assessment_id")) %>%
+  left_join(totalmed_4th_entry, by=c("CO.ID", "assessment_id")) %>%
+  left_join(totalmed_5th_entry, by=c("CO.ID", "assessment_id")) %>%
+  left_join(totalmed_6th_entry, by=c("CO.ID", "assessment_id"))
 
 #add in 'total daily dose' from 'medperpatient' to meds_wide
-# totaldailyformedswide <- medperpatient %>%
-#   select(assessment_id, total_standardised_daily_dose)
+totaldailyformedswide <- medperpatient %>%
+  select(Assessment.ID, total_standardised_daily_dose)
+totaldailyformedswide <- totaldailyformedswide %>%
+  rename("assessment_id" = "Assessment.ID")
   
+medperpatient <- medperpatient %>%
+  rename("assessment_id" = "Assessment.ID")
+
 meds_wide <- meds_wide %>%
   left_join(select(medperpatient, assessment_id, total_standardised_daily_dose), by = "assessment_id")
 
-# meds_wide <- left_join(meds_wide, totaldailyformedswide, by = "assessment_id")
 
-dropmedswide <- c("")
+meds_wide <- meds_wide %>%
+  select_if(function(x) !all(is.na(x)))
 ```
 Now we have a single line per visit and all doses in a single row.
 
