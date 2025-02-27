@@ -50,6 +50,8 @@ Notes:
 ```{r : merging data frames}
 test <- merge(participants, longitudinal, by = "CO.ID",
               all = TRUE)
+
+test$Date.of.Assessment <- as.Date(test$Date.of.Assessment, format = "%d/%m/%Y")
 ```
 *********************************
 *********************************
@@ -159,27 +161,13 @@ Also, in the output file we want both the numerical and interpretation of each l
 # labswide[labswide == "NULL"] <- NA
 ```
 
-
-*********************************
-*********************************
-------Time frames for all dataframes------
-
-Let's start with participantsnoduplicates frame
-
-```{r : timeframes}
-Today <- Sys.Date()
-visitdateparticipants <- participantsnoduplicates$Date...CAH.Longitudinal.Data 
-visitdateparticipants <- as.Date(visitdateparticipants,
-                                 format = "%d/%m/%Y")
-
-# participantsnoduplicates$Date...CAH.Longitudinal.Data <- as.Date(participantsnoduplicates$Date...CAH.Longitudinal.Data, format = "%d/%m/%Y")
-
-# participantsnoduplicates$timesincelastvisit <- Today - visitdateparticipants
-```
-
-The data frames from this section will show the sex of patients who have had a visit in a certain time frame.
-In this case, I have written code for splitting time frame into two, one year chunks.
 ```{r : sex distribution}
+# NEW
+sex_distribution <- select(participants, Sex.at.birth)
+
+
+
+# OLD
 sexcolumns <- c("Centre.ID", "CO.ID", "Sex.at.birth...Birth", "Date...CAH.Longitudinal.Data", "coid_assedate", "timesincelastvisit")
 sexdataframe <- participantsnoduplicates[, sexcolumns]
 
@@ -280,7 +268,6 @@ visitstatspercentre_Dec2022_Dec2023 <- visitstatspercentre_Dec2022_Dec2023 %>%
 write.csv(visitstatspercentre_Dec2023_Dec2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visitstatspercentre_Dec2023_Dec2024.csv", row.names = F)
 write.csv(visitstatspercentre_Dec2022_Dec2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visitstatspercentre_Dec2022_Dec2023.csv", row.names = F)
 ```
-
 
 Then let's look at visit stats for each centre
 ```{r}
