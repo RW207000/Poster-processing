@@ -228,6 +228,19 @@ medication_clean$coid_asse_id <- paste(medication_clean$CO.ID, medication_clean$
 
 # note column is always empty / "NULL", so remove it
 medication_clean <- select(medication_clean, -"Note")
+
+medication_clean <- medication_clean %>%
+  rename("assessment_id" = "Assessment.ID")
+
+
+# Adding assessment date to medication_clean
+test2 <- select(longitudinal, c("Assessment.ID", "Date.of.Assessment"))
+test2 <- test2 %>%
+  rename("assessment_id" = "Assessment.ID")
+
+medication_clean <- left_join(medication_clean, test2, by = c("assessment_id"))
+
+medication_clean$Date.of.Assessment <- as.Date(medication_clean$Date.of.Assessment, format = "%d/%m/%Y")
 ```
 
 Now let's check what units have been used to see if we need to standardise any...
@@ -288,10 +301,10 @@ checkmedstats <- medication_clean %>%
 
 # Now let's do it for total_daily_doses
 medperpatient <- medication_clean %>%
-  group_by(Assessment.ID) %>%
+  group_by(assessment_id) %>%
   summarise(total_standardised_daily_dose = sum(Standardised.doses, na.rm = TRUE))
 
-medication_clean <- full_join(medication_clean, medperpatient, by = "Assessment.ID")
+medication_clean <- full_join(medication_clean, medperpatient, by = "assessment_id")
 
 checkdailymedstats <- medication_clean %>%
   group_by(Medicine) %>%
@@ -321,7 +334,7 @@ A single patient visit may have more than one entry in the medication frame (mul
 ```{r : making meds_wide}
 medication_clean$assessment_entry <-
   ave(medication_clean$CO.ID,
-      medication_clean$Assessment.ID,
+      medication_clean$assessment_id,
       FUN = seq_along)
 
 totalmed_1st_entry <- 
@@ -384,27 +397,27 @@ colnames(totalmed_6th_entry) <-
 
 totalmed_1st_entry <- totalmed_1st_entry %>%
   rename("CO.ID" = "CO.ID_1",
-         "assessment_id" = "Assessment.ID_1")
+         "assessment_id" = "assessment_id_1")
 
 totalmed_2nd_entry <- totalmed_2nd_entry %>%
   rename("CO.ID" = "CO.ID_2",
-         "assessment_id" = "Assessment.ID_2")
+         "assessment_id" = "assessment_id_2")
 
 totalmed_3rd_entry <- totalmed_3rd_entry %>%
   rename("CO.ID" = "CO.ID_3",
-         "assessment_id" = "Assessment.ID_3")
+         "assessment_id" = "assessment_id_3")
 
 totalmed_4th_entry <- totalmed_4th_entry %>%
   rename("CO.ID" = "CO.ID_4",
-         "assessment_id" = "Assessment.ID_4")
+         "assessment_id" = "assessment_id_4")
 
 totalmed_5th_entry <- totalmed_5th_entry %>%
   rename("CO.ID" = "CO.ID_5",
-         "assessment_id" = "Assessment.ID_5")
+         "assessment_id" = "assessment_id_5")
 
 totalmed_6th_entry <- totalmed_6th_entry %>%
   rename("CO.ID" = "CO.ID_6",
-         "assessment_id" = "Assessment.ID_6")
+         "assessment_id" = "assessment_id_6")
 ```
 
 ```{r : joining widened med frames together}
@@ -417,16 +430,10 @@ meds_wide <- totalmed_1st_entry %>%
 
 #add in 'total daily dose' from 'medperpatient' to meds_wide
 totaldailyformedswide <- medperpatient %>%
-  select(Assessment.ID, total_standardised_daily_dose)
-totaldailyformedswide <- totaldailyformedswide %>%
-  rename("assessment_id" = "Assessment.ID")
-  
-medperpatient <- medperpatient %>%
-  rename("assessment_id" = "Assessment.ID")
+  select(assessment_id, total_standardised_daily_dose)
 
 meds_wide <- meds_wide %>%
   left_join(select(medperpatient, assessment_id, total_standardised_daily_dose), by = "assessment_id")
-
 
 meds_wide <- meds_wide %>%
   select_if(function(x) !all(is.na(x)))
@@ -436,7 +443,7 @@ Now we have a single line per visit and all doses in a single row.
 Now to add in the number of doses onto 'medperpatient' (couldn't do this earlier because widening meds is what introduces assessment entry numbers)
 ```{r : doses per patient}
 medperpatient$number_of_doses <- medication_clean %>%
-  group_by(Assessment.ID) %>%
+  group_by(assessment_id) %>%
   summarise(max(assessment_entry))
 ```
 
@@ -448,7 +455,7 @@ medperpatient$number_of_doses <- medication_clean %>%
 Start with working out how many visits each participant had where medication data was recorded
 ```{r : medication entries}
 medicationentries <- medication_clean %>%
-  group_by(Assessment.ID) %>%
+  group_by(assessment_id) %>%
   summarise(n = n())
 ```
 
@@ -462,7 +469,7 @@ write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions
 
 Let's have a look at prescription habits
 ```{r : prescriptions - medicines}
-medication_clean$prescribedmedperpatient <- paste(medication_clean$coid_asse_id, medication_clean$medicine)
+medication_clean$prescribedmedperpatient <- paste(medication_clean$coid_asse_id, medication_clean$Medicine)
   
 medprescriptions <- subset(medication_clean, assessment_entry == 1)
 
@@ -473,47 +480,34 @@ all_prescriptions <- medprescriptions %>%
               values_from = n) %>%
   select(1,2,5,4,3)
 
-test2 <- select(longitudinal, c("Assessment.ID", "Date.of.Assessment"))
-test2 <- test2 %>%
-  rename("assessment_id" = "Assessment.ID")
+prescriptions_last_12m <- medprescriptions %>%
+  group_by(Medicine) %>%
+  filter(Date.of.Assessment > "2024-02-27") %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = Medicine,
+              values_from = n)
 
-meds_wide <- left_join(meds_wide, test2, by = c("assessment_id"))
-
+prescriptions_1_to_5_yrs <- medprescriptions %>%
+  group_by(Medicine) %>%
+  filter(Date.of.Assessment < "2024-02-27") %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = Medicine,
+              values_from = n)
 
 
 write.csv(all_prescriptions, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_prescriptions.csv", row.names = F)
 
-prescriptions_2023_2024 <- medprescriptions %>%
-  group_by(Centre.ID, medicine) %>%
-  filter(assessment_date > "2023-12-01") %>%
-  summarise(n = n()) %>%
-  pivot_wider(names_from = medicine,
-              values_from = n) %>%
-  select(1,2,5,3,4)
+write.csv(prescriptions_last_12m, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prescriptions_last_12m.csv", row.names = F)
 
-prescriptions_2023_2024 <- prescriptions_2023_2024 %>%
-  full_join(centreIDs2022_2024, prescriptions_2023_2024, by = "Centre.ID")
-prescriptions_2023_2024 <- prescriptions_2023_2024 [order(prescriptions_2023_2024$Centre.ID),]
-write.csv(prescriptions_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prescriptions_2023_2024.csv", row.names = F)
-
-prescriptions_2022_2023 <- medprescriptions %>%
-  group_by(Centre.ID, medicine) %>%
-  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
-  summarise(n = n()) %>%
-  pivot_wider(names_from = medicine,
-              values_from = n) %>%
-  select(1,2,5,4,3)
-
-prescriptions_2022_2023 <- prescriptions_2022_2023 %>%
-  full_join(centreIDs2022_2024, prescriptions_2022_2023, by = "Centre.ID")
-prescriptions_2022_2023 <- prescriptions_2022_2023 [order(prescriptions_2022_2023$Centre.ID),]
-write.csv(prescriptions_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prescriptions_2022_2023.csv", row.names = F)
-
+write.csv(prescriptions_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/prescriptions_1_to_5_yrs.csv", row.names = F)
 
 othermeds <- subset(medication_clean, medicine == "other")
 ```
 
 ```{r : prescriptions - values}
+
+# DIDNT RUN THIS IN FEB.
+
 # let's get stats for each centre for each medicine type
 
 # note here that 'number of prescription records' refers to the number of visits where a single patient was recorded to have been using the particular medicine.
