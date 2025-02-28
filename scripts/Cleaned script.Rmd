@@ -449,9 +449,9 @@ medperpatient$number_of_doses <- medication_clean %>%
   group_by(assessment_id) %>%
   summarise(max(assessment_entry))
 
+patient_medicine <- select(meds_wide, c("assessment_id", "Medicine_1"))
 
-
-medperpatient$Medicine <- meds_wide$Medicine_1
+medperpatient <- left_join(medperpatient, patient_medicine, by = "assessment_id")
 
 # add in BMI
 BMI_values <- select(longitudinal, c("Assessment.ID", "BMI"))
@@ -710,28 +710,13 @@ Let's try to work out how many patients are on a single medication or combined.
 Within medtherapy frame, each row shows all medications, recorded in a single visit, taken in a single day by a single patient.
 ~ need to be careful when one patient has more than one visit in the same timeframe because each visit will be its own row of data and will be counted as two separate people...
 ```{r : medication therapies}
-# # DIDN'T RUN IN FEB
-# 
-# # make a new data frame with just medicine type
-# medtherapy <- select(meds_wide, c("Centre.ID_1", "CO.ID", "assessment_id", "meds_assessment_date", "coid_asse_id_1", "medicine_1", "medicine_2", "medicine_3", "medicine_4", "medicine_5", "medicine_6"))
+# make a new data frame with just medicine type
+medtherapy <- select(meds_wide, c("CO.ID", "assessment_id", "Date.of.Assessment_1", "Medicine_1", "Medicine_2", "Medicine_3", "Medicine_4"))
 
-# # need to work out how to make a legit output for seeing how many patients are on multiple medications simletaneously, but for now, this code works. Just count the number of occurances of 8 (multiple medications) vs 7
-# 
-# apply(medtherapy, 1, function(x) length (unique(x)))
-# 
-# # therefore, in this case, there are four 8s which means that 4/112 patients from 2022-2024 are on multiple medications.
+# need to work out how to make a legit output for seeing how many patients are on multiple medications simultaneously, but for now, this code works.
 
-# medtherapy_2023_2024 <- medtherapy %>%
-#   filter(meds_assessment_date > "2023-12-01")
-# apply(medtherapy_2023_2024, 1, function(x) length (unique(x)))
-# # in 2023_2024, there are three 8s which means that 3/63 patients are on multiple medications (HC & prednisolone)
-
-
-# medtherapy_2022_2023 <- medtherapy %>%
-#   filter(meds_assessment_date < "2023-12-01" & meds_assessment_date > "2022-12-01")
-# apply(medtherapy_2022_2023, 1, function(x) length (unique(x)))
-# # in 2022_2023, there is one 8 which means that 1/49 patients are on multiple medications (HC & prednisolone)
-
+blah <- apply(medtherapy, 1, function(x) length (unique(x)))
+blah <- as.data.frame(blah)
 
 # https://stackoverflow.com/questions/74737100/how-to-check-if-multiple-columns-are-row-wise-equivalent-ignoring-na-values
 ```
