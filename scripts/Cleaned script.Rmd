@@ -445,6 +445,8 @@ Now to add in the number of doses onto 'medperpatient' (couldn't do this earlier
 medperpatient$number_of_doses <- medication_clean %>%
   group_by(assessment_id) %>%
   summarise(max(assessment_entry))
+
+medperpatient$Medicine <- meds_wide$Medicine_1
 ```
 
 
@@ -844,6 +846,10 @@ write.csv(BMIstats_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extraction
 ```{r : blood pressure}
 # just need to extract blood pressure columns
 blood_pressures <- select(longitudinal, c("Assessment.ID", "CO.ID", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure"))
+
+blood_pressures$Class <- ""
+blood_pressures$Class [blood_pressures$BMI <18.5] <- "Underweight"
+BMIframe$Class [BMIframe$BMI >= 18.5 & BMIframe$BMI <25] <- "Normal"
 
 write.csv(blood_pressures, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/blood_pressures.csv", row.names = F)
 ```
