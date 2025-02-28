@@ -284,6 +284,9 @@ medication_clean$Standardised.doses <-
 
 medication_clean$Standardised.doses <- 
   ifelse(medication_clean$Medicine == "Dexamethasone", (as.numeric(medication_clean$Dose) * dexamethasoneratio), medication_clean$Standardised.doses)
+
+# medication_clean$Standardised.doses <- 
+#   ifelse(medication_clean$Medicine == "Other", medication_clean$Dose, NA)
 ```
 
 To check that the modified values seem sensible, let's run some basic stats to check for outliers/abnormal values.
@@ -302,17 +305,17 @@ checkmedstats <- medication_clean %>%
 # Now let's do it for total_daily_doses
 medperpatient <- medication_clean %>%
   group_by(assessment_id) %>%
-  summarise(total_standardised_daily_dose = sum(Standardised.doses, na.rm = TRUE))
+  summarise(total_standardised_daily_dose_1 = sum(Standardised.doses, na.rm = TRUE))
 
 medication_clean <- full_join(medication_clean, medperpatient, by = "assessment_id")
 
 checkdailymedstats <- medication_clean %>%
   group_by(Medicine) %>%
-  summarise(mean_standardised_dose = mean(total_standardised_daily_dose, na.rm = TRUE),
-            median_standardised_dose = median(total_standardised_daily_dose, na.rm = TRUE),
-            sd_standardised_dose = sd(total_standardised_daily_dose, na.rm = TRUE),
-            min_standardised_dose = min(total_standardised_daily_dose, na.rm = TRUE),
-            max_standardised_dose = max(total_standardised_daily_dose, na.rm = TRUE)) %>%
+  summarise(mean_standardised_dose = mean(total_standardised_daily_dose_1, na.rm = TRUE),
+            median_standardised_dose = median(total_standardised_daily_dose_1, na.rm = TRUE),
+            sd_standardised_dose = sd(total_standardised_daily_dose_1, na.rm = TRUE),
+            min_standardised_dose = min(total_standardised_daily_dose_1, na.rm = TRUE),
+            max_standardised_dose = max(total_standardised_daily_dose_1, na.rm = TRUE)) %>%
   mutate_if(is.numeric, ~round(., 2))
 ```
 
@@ -430,10 +433,10 @@ meds_wide <- totalmed_1st_entry %>%
 
 #add in 'total daily dose' from 'medperpatient' to meds_wide
 totaldailyformedswide <- medperpatient %>%
-  select(assessment_id, total_standardised_daily_dose)
+  select(assessment_id, total_standardised_daily_dose_1)
 
 meds_wide <- meds_wide %>%
-  left_join(select(medperpatient, assessment_id, total_standardised_daily_dose), by = "assessment_id")
+  left_join(select(medperpatient, assessment_id, total_standardised_daily_dose_1), by = "assessment_id")
 
 meds_wide <- meds_wide %>%
   select_if(function(x) !all(is.na(x)))
@@ -446,9 +449,18 @@ medperpatient$number_of_doses <- medication_clean %>%
   group_by(assessment_id) %>%
   summarise(max(assessment_entry))
 
-medperpatient$Medicine <- meds_wide$Medicine_1
-```
 
+
+medperpatient$Medicine <- meds_wide$Medicine_1
+
+# add in BMI
+BMI_values <- select(longitudinal, c("Assessment.ID", "BMI"))
+BMI_values <- rename(BMI_values, "assessment_id" = "Assessment.ID")
+
+medperpatient <- left_join(medperpatient, BMI_values, by = "assessment_id")
+
+write.csv(medperpatient, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/medperpatient.csv", row.names = F)
+```
 
 *********************************
 *********************************
@@ -798,6 +810,7 @@ overallvisitsstats$number_of_lab_patients <- n_unique(labs_wide$CO.ID)
 
 write.csv(overallvisitsstats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/overallvisitsstats.csv", row.names = F)
 ```
+
 BMI info
 ```{r : BMI}
 BMIframe <- select(longitudinal, c("Assessment.ID", "Date.of.Assessment", "BMI"))
@@ -842,6 +855,7 @@ write.csv(BMIstats_last_12m, file = "C:/Users/md1rwe/Documents/Data extractions 
 
 write.csv(BMIstats_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/BMIstats_1_to_5_yrs.csv", row.names = F, na = "")
 ```
+
 
 ```{r : blood pressure}
 # just need to extract blood pressure columns
