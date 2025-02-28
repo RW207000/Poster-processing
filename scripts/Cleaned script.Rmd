@@ -432,8 +432,7 @@ meds_wide <- totalmed_1st_entry %>%
   left_join(totalmed_6th_entry, by=c("CO.ID", "assessment_id"))
 
 #add in 'total daily dose' from 'medperpatient' to meds_wide
-totaldailyformedswide <- medperpatient %>%
-  select(assessment_id, total_standardised_daily_dose_1)
+totaldailyformedswide <- select(medperpatient, c("assessment_id", "total_standardised_daily_dose_1"))
 
 meds_wide <- meds_wide %>%
   left_join(select(medperpatient, assessment_id, total_standardised_daily_dose_1), by = "assessment_id")
@@ -450,14 +449,12 @@ medperpatient$number_of_doses <- medication_clean %>%
   summarise(max(assessment_entry))
 
 patient_medicine <- select(meds_wide, c("assessment_id", "Medicine_1"))
+patient_w_h <- select(longitudinal, c("Assessment.ID", "Weight..kg.", "Height..cm."))
+absolute_med_values <- select(meds_wide, )
+
 
 medperpatient <- left_join(medperpatient, patient_medicine, by = "assessment_id")
-
-# add in BMI
-BMI_values <- select(longitudinal, c("Assessment.ID", "BMI"))
-BMI_values <- rename(BMI_values, "assessment_id" = "Assessment.ID")
-
-medperpatient <- left_join(medperpatient, BMI_values, by = "assessment_id")
+medperpatient <- left_join(medperpatient, patient_w_h, join_by("assessment_id" == "Assessment.ID"))
 
 write.csv(medperpatient, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/medperpatient.csv", row.names = F)
 ```
@@ -568,8 +565,9 @@ Check which columns are missing and remove so this can work.
 
 Let's extract required labs info for CAH biomarkers 17-OHP and andro
 ```{r : labs biomarker subset}
-CAH_biomarkers <- select(labs_wide, c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.interpretation", "Renin.value", "Renin.interpretation", "Total testosterone.value", "Total testosterone.interpretation"))
+CAH_biomarkers <- select(labs_wide, c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.interpretation", "Renin.value", "Renin.interpretation", "Total testosterone.value", "Total testosterone.interpretation", "Glucose.value", "Glucose.interpretation"))
 
+# 17-OHP
 CAH_biomarkers$`17-OHP.unit` <- str_extract(CAH_biomarkers$`17-OHP.value`, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+")
 
 CAH_biomarkers$`17-OHP.value` <- as.numeric(str_extract(CAH_biomarkers$`17-OHP.value`, "[0-9]+.?[0-9]*+"))
@@ -592,7 +590,12 @@ CAH_biomarkers$`Renin.value` <- as.numeric(str_extract(CAH_biomarkers$`Renin.val
 CAH_biomarkers$Renin.plasma.activity <- (CAH_biomarkers$Renin.value * 0.158)
 CAH_biomarkers$Renin.plasma.activity <- round(CAH_biomarkers$Renin.plasma.activity, digits = 2)
 
-CAH_biomarkers_order <- c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.unit", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.unit", "Androstenedione.interpretation", "Renin.value", "Renin.unit", "Renin.interpretation", "Renin.plasma.activity", "Total testosterone.value", "Total.testosterone.unit", "Total testosterone.interpretation")
+# glucose
+CAH_biomarkers$Glucose.unit <- str_extract(CAH_biomarkers$Glucose.value, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+")
+
+CAH_biomarkers$Glucose.value <- as.numeric(str_extract(CAH_biomarkers$Glucose.value, "[0-9]+.?[0-9]*+"))
+
+CAH_biomarkers_order <- c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.unit", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.unit", "Androstenedione.interpretation", "Renin.value", "Renin.unit", "Renin.interpretation", "Renin.plasma.activity", "Total testosterone.value", "Total.testosterone.unit", "Total testosterone.interpretation", "Glucose.value", "Glucose.interpretation")
 CAH_biomarkers <- CAH_biomarkers[, CAH_biomarkers_order]
 
 write.csv(CAH_biomarkers, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers.csv", row.names = F)
@@ -606,10 +609,21 @@ CAH_biomarkers_last12m <- CAH_biomarkers %>%
 CAH_biomarkers_1_to_5_yrs <- CAH_biomarkers %>%
   filter(Date < "2024-02-07")
 
-write.csv(CAH_biomarkers_last12m, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers_last12m.csv", row.names = F, na = "")
+write.csv(CAH_biomarkers_last12m, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers_last12m.csv", row.names = F)
 
-write.csv(CAH_biomarkers_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers_1_to_5_yrs.csv", row.names = F, na = "")
+write.csv(CAH_biomarkers_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers_1_to_5_yrs.csv", row.names = F)
 ```
+
+```{r}
+glucose <- select(CAH_biomarkers, c("Glucose.value"))
+glucose_last_12m <- select(CAH_biomarkers_last12m, c("Glucose.value"))
+glucose_1_to_5_yrs <- select(CAH_biomarkers_1_to_5_yrs, c("Glucose.value"))
+
+write.csv(glucose_last_12m, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/glucose_last_12m.csv", row.names = F)
+
+write.csv(glucose_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/glucose_1_to_5_yrs.csv", row.names = F)
+```
+
 
 Add labs stats onto 'overall visit stats' and make new frames for per centre.
 ```{r}
@@ -667,7 +681,7 @@ write.csv(BMIstats_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extraction
 
 ```{r : blood pressure}
 # just need to extract blood pressure columns
-blood_pressures <- select(longitudinal, c("Assessment.ID", "CO.ID", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure"))
+blood_pressures <- select(longitudinal, c("Assessment.ID", "CO.ID", "Date.of.Assessment", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure"))
 
 blood_pressures$Class <- ""
 
@@ -683,13 +697,11 @@ blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 130 & blood_pr
 # Hypertension Stage 2
 blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 140 & blood_pressures$Systolic.Blood.Pressure < 180 | blood_pressures$Diastolic.Blood.Pressure >= 90 & blood_pressures$Diastolic.Blood.Pressure < 120] <- "Hypertension Stage 2"
 
-# Hypertension Stage 2
-blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 180 | blood_pressures$Diastolic.Blood.Pressure >= 90] <- "Hypertension Stage 2"
+# Hypertension Stage 2 (or)
+blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 180 |  blood_pressures$Diastolic.Blood.Pressure >= 90] <- "Hypertension Stage 2"
 
-
-#
-blood_pressures$Class [blood_pressures$BMI <18.5] <- "Underweight"
-BMIframe$Class [BMIframe$BMI >= 18.5 & BMIframe$BMI <25] <- "Normal"
+# Hypertension Stage 2 (and)
+blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 180 &  blood_pressures$Diastolic.Blood.Pressure >= 90] <- "Hypertension Stage 2"
 
 write.csv(blood_pressures, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/blood_pressures.csv", row.names = F)
 ```
