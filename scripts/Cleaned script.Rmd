@@ -756,7 +756,7 @@ Check which columns are missing and remove so this can work.
 
 Let's extract required labs info for CAH biomarkers 17-OHP and andro
 ```{r : labs biomarker subset}
-CAH_biomarkers <- select(labs_wide, c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.interpretation"))
+CAH_biomarkers <- select(labs_wide, c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.interpretation", "Renin.value", "Renin.interpretation"))
 
 CAH_biomarkers$`17-OHP.unit` <- str_extract(CAH_biomarkers$`17-OHP.value`, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+")
 
@@ -766,7 +766,14 @@ CAH_biomarkers$`Androstenedione.unit` <- str_extract(CAH_biomarkers$`Androstened
 
 CAH_biomarkers$`Androstenedione.value` <- as.numeric(str_extract(CAH_biomarkers$`Androstenedione.value`, "[0-9]+.?[0-9]*+"))
 
-CAH_biomarkers_order <- c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.unit", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.unit", "Androstenedione.interpretation")
+CAH_biomarkers$Renin.value <- as.numeric(str_extract(CAH_biomarkers$Renin.value, "[0-9]+.?[0-9]*+"))
+
+CAH_biomarkers$Renin.interpretation <- (str_extract(CAH_biomarkers$Renin.value, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+"))
+
+CAH_biomarkers$Renin.plasma.activity <- (CAH_biomarkers$Renin.value * 0.158)
+CAH_biomarkers$Renin.plasma.activity <- round(CAH_biomarkers$Renin.plasma.activity, digits = 2)
+
+CAH_biomarkers_order <- c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.unit", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.unit", "Androstenedione.interpretation", "Renin.value", "Renin.interpretation", "Renin.plasma.activity")
 CAH_biomarkers <- CAH_biomarkers[, CAH_biomarkers_order]
 
 write.csv(CAH_biomarkers, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers.csv", row.names = F)
@@ -1083,37 +1090,18 @@ write.csv(Ando2022_2023stats, file = "C:/Users/md1rwe/Documents/Data extractions
 Now renin.
 If you're doing numerical stats, the raw renin values need to be converted to renin plasma activity. This is done by applying *0.158.
 ```{r : renin, include=FALSE}
-Reninframe <- select(labs_wide, c("Centre.ID", "assessment_id", "assessment_date", "renin.value", "renin.interpretation"))
-Reninframe <- filter(Reninframe, !renin.interpretation == "NULL")
-Reninframe$numericvalue <-as.numeric(str_extract(Reninframe$renin.value, "[0-9]+.?[0-9]*+"))
-Reninframe$unit <- (str_extract(Reninframe$renin.value, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+"))
+Reninframe <- select(labs_wide, c("Assessment.ID", "Date", "Renin.value", "Renin.interpretation"))
+Reninframe <- filter(Reninframe, !Renin.interpretation == "NULL")
+Reninframe$numericvalue <-as.numeric(str_extract(Reninframe$Renin.value, "[0-9]+.?[0-9]*+"))
+Reninframe$unit <- (str_extract(Reninframe$Renin.value, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+"))
 Reninframe$reninplasmaactivity <- (Reninframe$numericvalue * 0.158)
 Reninframe$reninplasmaactivity <- round(Reninframe$reninplasmaactivity, digits = 2)
 
-Reninframe_2023_2024 <- Reninframe %>%
-  filter(assessment_date > "2023-12-01") %>%
-  group_by(Centre.ID, renin.interpretation) %>%
-  summarise(n = n()) %>%
-  pivot_wider(names_from = renin.interpretation,
-              values_from = n)
-
-Renin2023_2024_no_entries <- anti_join(centreIDs2022_2024, Reninframe_2023_2024, by = "Centre.ID")
-Reninframe_2023_2024 <- full_join(Renin2023_2024_no_entries, Reninframe_2023_2024, by = "Centre.ID")
-Reninframe_2023_2024 <- Reninframe_2023_2024 [order(Reninframe_2023_2024$Centre.ID),]
+write.csv(Reninframe, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/Reninframe.csv", row.names = F)
 
 
-Reninframe_2022_2023 <- Reninframe %>%
-  filter(assessment_date < "2023-12-01" & assessment_date > "2022-12-01") %>%
-  group_by(Centre.ID, renin.interpretation) %>%
-  summarise(n = n()) %>%
-  pivot_wider(names_from = renin.interpretation,
-              values_from = n)
+# time frames
 
-Renin2022_2023_no_entries <- anti_join(centreIDs2022_2024, Reninframe_2022_2023, by = "Centre.ID")
-Reninframe_2022_2023 <- full_join(Renin2022_2023_no_entries, Reninframe_2022_2023, by = "Centre.ID")
-Reninframe_2022_2023 <- Reninframe_2022_2023 [order(Reninframe_2022_2023$Centre.ID),]
-
-write.csv(Reninframe_2022_2023, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/Reninframe_2022_2023.csv", row.names = F)
 write.csv(Reninframe_2023_2024, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/Reninframe_2023_2024.csv", row.names = F)
 ```
 
