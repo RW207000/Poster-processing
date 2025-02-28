@@ -574,18 +574,17 @@ CAH_biomarkers$`17-OHP.unit` <- str_extract(CAH_biomarkers$`17-OHP.value`, "[aA-
 
 CAH_biomarkers$`17-OHP.value` <- as.numeric(str_extract(CAH_biomarkers$`17-OHP.value`, "[0-9]+.?[0-9]*+"))
 
+# androstenedione
 CAH_biomarkers$`Androstenedione.unit` <- str_extract(CAH_biomarkers$`Androstenedione.value`, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+")
 
 CAH_biomarkers$`Androstenedione.value` <- as.numeric(str_extract(CAH_biomarkers$`Androstenedione.value`, "[0-9]+.?[0-9]*+"))
 
-# add testosterone
+# testosterone
 CAH_biomarkers$`Total.testosterone.unit` <- str_extract(CAH_biomarkers$`Total testosterone.value`, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+")
 
 CAH_biomarkers$`Total testosterone.value` <- as.numeric(str_extract(CAH_biomarkers$`Total testosterone.value`, "[0-9]+.?[0-9]*+"))
 
-#
-
-
+# renin
 CAH_biomarkers$`Renin.unit` <- str_extract(CAH_biomarkers$`Renin.value`, "[aA-zZ]+.?[aA-zZ]+.?[aA-zZ]*+")
 
 CAH_biomarkers$`Renin.value` <- as.numeric(str_extract(CAH_biomarkers$`Renin.value`, "[0-9]+.?[0-9]*+"))
@@ -593,11 +592,10 @@ CAH_biomarkers$`Renin.value` <- as.numeric(str_extract(CAH_biomarkers$`Renin.val
 CAH_biomarkers$Renin.plasma.activity <- (CAH_biomarkers$Renin.value * 0.158)
 CAH_biomarkers$Renin.plasma.activity <- round(CAH_biomarkers$Renin.plasma.activity, digits = 2)
 
-CAH_biomarkers_order <- c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.unit", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.unit", "Androstenedione.interpretation", "Renin.value", "Renin.unit", "Renin.interpretation", "Renin.plasma.activity")
+CAH_biomarkers_order <- c("Assessment.ID", "CO.ID", "Date", "17-OHP.value", "17-OHP.unit", "17-OHP.interpretation", "Androstenedione.value", "Androstenedione.unit", "Androstenedione.interpretation", "Renin.value", "Renin.unit", "Renin.interpretation", "Renin.plasma.activity", "Total testosterone.value", "Total.testosterone.unit", "Total testosterone.interpretation")
 CAH_biomarkers <- CAH_biomarkers[, CAH_biomarkers_order]
 
 write.csv(CAH_biomarkers, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers.csv", row.names = F)
-
 
 # Now time frames
 CAH_biomarkers$Date <- as.Date(CAH_biomarkers$Date, format = "%d/%m/%Y")
@@ -672,6 +670,24 @@ write.csv(BMIstats_1_to_5_yrs, file = "C:/Users/md1rwe/Documents/Data extraction
 blood_pressures <- select(longitudinal, c("Assessment.ID", "CO.ID", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure"))
 
 blood_pressures$Class <- ""
+
+# normal
+blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure <= 120 & blood_pressures$Diastolic.Blood.Pressure < 80] <- "Normal"
+
+# elevated
+blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 120 & blood_pressures$Systolic.Blood.Pressure < 129 & blood_pressures$Diastolic.Blood.Pressure <80] <- "Elevated"
+
+# Hypertension Stage 1
+blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 130 & blood_pressures$Systolic.Blood.Pressure < 139 | blood_pressures$Diastolic.Blood.Pressure >= 80 & blood_pressures$Diastolic.Blood.Pressure < 89] <- "Hypertension Stage 1"
+
+# Hypertension Stage 2
+blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 140 & blood_pressures$Systolic.Blood.Pressure < 180 | blood_pressures$Diastolic.Blood.Pressure >= 90 & blood_pressures$Diastolic.Blood.Pressure < 120] <- "Hypertension Stage 2"
+
+# Hypertension Stage 2
+blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 180 | blood_pressures$Diastolic.Blood.Pressure >= 90] <- "Hypertension Stage 2"
+
+
+#
 blood_pressures$Class [blood_pressures$BMI <18.5] <- "Underweight"
 BMIframe$Class [BMIframe$BMI >= 18.5 & BMIframe$BMI <25] <- "Normal"
 
