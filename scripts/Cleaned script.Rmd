@@ -541,7 +541,32 @@ medtherapy_last12m <- as.data.frame(medtherapy_last12m)
 medtherapy_1_to_5_years <- apply(medtherapy_1_to_5_years_frame, 1, function(x) length (unique(x)))
 medtherapy_1_to_5_years <- as.data.frame(medtherapy_1_to_5_years)
 
+
+# write csvs
+write.csv(medtherapy_last12m_frame, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/medtherapy_last12m_frame.csv", row.names = F)
+
+write.csv(medtherapy_1_to_5_years_frame, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/medtherapy_1_to_5_years_frame.csv", row.names = F)
+
+
 # https://stackoverflow.com/questions/74737100/how-to-check-if-multiple-columns-are-row-wise-equivalent-ignoring-na-values
+```
+
+```{r}
+med_simplified <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/medication_simplified.csv", header=T, na.strings= c("", "NA"))
+
+med_simplified$Date <- meds_wide$Date.of.Assessment_1
+
+med_simplified_last_12m <- med_simplified %>%
+  filter(Date >= "2024-02-07")
+
+med_simplified_1_to_5_year <- med_simplified %>%
+  filter(Date < "2024-02-07")
+
+write.csv(med_simplified, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/med_simplified.csv", row.names = F)
+
+write.csv(med_simplified_last_12m, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/med_simplified_last_12m.csv", row.names = F)
+
+write.csv(med_simplified_1_to_5_year, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/med_simplified_1_to_5_year.csv", row.names = F)
 ```
 
 
