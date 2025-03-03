@@ -439,6 +439,9 @@ meds_wide <- meds_wide %>%
 
 meds_wide <- meds_wide %>%
   select_if(function(x) !all(is.na(x)))
+
+write.csv(meds_wide, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/meds_wide.csv", row.names = F)
+
 ```
 Now we have a single line per visit and all doses in a single row.
 
@@ -522,10 +525,21 @@ Within medtherapy frame, each row shows all medications, recorded in a single vi
 # make a new data frame with just medicine type
 medtherapy <- select(meds_wide, c("CO.ID", "assessment_id", "Date.of.Assessment_1", "Medicine_1", "Medicine_2", "Medicine_3", "Medicine_4"))
 
-# need to work out how to make a legit output for seeing how many patients are on multiple medications simultaneously, but for now, this code works.
+medtherapy_last12m_frame <- medtherapy %>%
+  filter(Date.of.Assessment_1 >= "2024-02-07")
 
+medtherapy_1_to_5_years_frame <- medtherapy %>%
+  filter(Date.of.Assessment_1 < "2024-02-07")
+
+# need to work out how to make a legit output for seeing how many patients are on multiple medications simultaneously, but for now, this code works.
 blah <- apply(medtherapy, 1, function(x) length (unique(x)))
 blah <- as.data.frame(blah)
+
+medtherapy_last12m <- apply(medtherapy_last12m_frame, 1, function(x) length (unique(x)))
+medtherapy_last12m <- as.data.frame(medtherapy_last12m)
+
+medtherapy_1_to_5_years <- apply(medtherapy_1_to_5_years_frame, 1, function(x) length (unique(x)))
+medtherapy_1_to_5_years <- as.data.frame(medtherapy_1_to_5_years)
 
 # https://stackoverflow.com/questions/74737100/how-to-check-if-multiple-columns-are-row-wise-equivalent-ignoring-na-values
 ```
