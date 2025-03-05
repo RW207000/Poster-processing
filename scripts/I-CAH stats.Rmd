@@ -189,11 +189,27 @@ minimal_data$`Age at assessment (years)` <- interval(minimal_data$DOB, minimal_d
 minimal_data$`Age at assessment (years)` <- round(minimal_data$`Age at assessment (years)`, digits = 0)
 ```
 
+At this point, we have: Age, sex, height, weight, BMI, blood pressure
+Need to add in: medication and biomarkers.
+Medication will come from 'meds_wide'.
+Biomarkers will come from 'labs_wide'.
+Let's just read in widened frames generated from 'cleaned script' processing code.
 
+```{r : reading in meds_wide}
+meds_wide <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/meds_wide.csv", header=T, na.strings= c("", "NA"))
+meds_wide$Date.of.Assessment_1 <- as.Date(meds_wide$Date.of.Assessment_1, format = "%d/%m/%Y")
 
+# let's add unique identifier
+meds_wide$CO.ID_assessment_date <- paste0(meds_wide$CO.ID, meds_wide$Date.of.Assessment_1)
+```
 
+```{r : reading in labs_wide}
+labs_wide <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/labs_wide.csv", header=T, na.strings= c("", "NA"))
+labs_wide$Date <- as.Date(labs_wide$Date, format = "%d/%m/%Y")
 
-
+# let's add unique identifier
+labs_wide$CO.ID_assessment_date <- paste0(labs_wide$CO.ID, labs_wide$Date)
+```
 
 
 
