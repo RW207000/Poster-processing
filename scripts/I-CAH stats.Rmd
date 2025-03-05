@@ -1,0 +1,131 @@
+---
+title: "I-CAH stats"
+author: "R.Welch"
+date: "2025-03-05"
+output: html_document
+---
+This code is used to provide stats on the data extracted from I-CAH.
+- Three time frames are wanted: Nov22-23, Nov23-24, Nov24-Feb25
+
+For each time frame, and per centre, this code will provide the following:
+- missing data (% and number of patients) for each element of the minimal dataset (outlined on CaHASE2 webpage)
+- How many patients have >1 entry (and create subset data frame to show these patients/records)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Reading in data.
+```{r : reading in data}
+participants <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Core only 24.02.2025.csv", header=T, na.strings= c("", "NA"))
+# participants$Date...CAH.Longitudinal.Data <- as.Date(participants$Date...CAH.Longitudinal.Data, format = "%d/%m/%Y")
+
+medication <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Glucocorticoids Data 24.02.2025.csv", header=T, na.strings= c("", "NA"))
+medication <- remove_empty(medication, c("cols"), cutoff = 1)
+# medication$assessment_date <- as.Date(medication$assessment_date, format = "%d/%m/%Y")
+
+labs <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Labs data 24.02.2025.csv", header=T, na.strings= c("", "NA"))
+# labs$assessment_date <- as.Date(labs$assessment_date, format = "%d/%m/%Y")
+
+longitudinal <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Longitudinal data 24.02.2025.csv", header=T, na.strings= c("", "NA"))
+```
+
+Need to merge participants and longitudinal data frames
+```{r : merging data frames}
+participants_longitudinal <- merge(participants, longitudinal, by = "CO.ID",
+              all = TRUE)
+
+participants_longitudinal$Date.of.Assessment <- as.Date(participants_longitudinal$Date.of.Assessment, format = "%d/%m/%Y")
+```
+
+Before you start analysing data, remove any duplicated entries.
+Duplicated entries occur when data has been entered twice. Usually with one or two fields differing between entries, indicating that one of the entries is incorrect and has subsequently been 'replaced' by a correct entry. You can't tell which entry is the correct one, so for safety we will remove all duplicated entries.
+
+*********************************
+*********************************
+------Removing duplicates------
+
+Making unique identifier for each assessment by combining co-id and assessment date.
+```{r : making new unique identifier}
+participants$coid_assedate <- paste(participants$CO.ID, participants$Date...CAH.Longitudinal.Data, sep = " ")
+```
+
+Checking for any duplicate entries (i.e.: any duplicates in the newly made unique identifier).
+'list of duplicates frame' gives output of duplicate candidates
+```{r : checking for duplicates}
+duplicates <- freq(participants$coid_assedate)
+duplicatesframe <- as.data.frame(duplicates)
+duplicatesframe <- rownames_to_column(duplicatesframe, var="idvisitdate")
+```
+
+Now to remove any non-duplicates in 'duplicatesframe' to show us what the actual duplicates are and how many times they've been duplicated
+```{r : isolating duplicate occurances, include= FALSE}
+duplicatesframe <- duplicatesframe[duplicatesframe$idvisitdate != c("Total", "<NA>"),]
+duplicatesframe <- duplicatesframe[-c(3:6)]
+
+duplicateassessments <- duplicatesframe %>%
+  filter(Freq>1)
+```
+
+Make a new vector to use as list of duplicate entries to remove from participants dataframe and then remove duplicated entries from participants dataframe with a subset.
+Because there's no way of knowing which duplicate entry is the correct one, all duplicates are removed.
+```{r : removing duplicates, include=FALSE}
+idvisitstoremove <- duplicateassessments$idvisitdate
+
+participantsnoduplicates <- subset(participants, !coid_assedate %in% idvisitstoremove)
+
+freqcheck <- as.data.frame(freq(participantsnoduplicates$coid_assedate))
+freqcheck <- rownames_to_column(freqcheck, var="idvisitdate")
+freqcheck <- freqcheck[freqcheck$idvisitdate != c("Total", "<NA>"),]
+# freqcheck
+```
+
+Making a dataframe of the removed duplicate assessment entries
+```{r : removed duplicates}
+toremove <- duplicateassessments$idvisitdate
+removedrecords <- subset(participants, coid_assedate %in% toremove)
+
+write.csv(removedrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/removed_records", row.names = F)
+```
+
+Because I've removed all duplicate assessment entries, we might have lost participant/s if their only entry is one of these removed duplicates.
+This will show which participants, if any, have been lost.
+We need to split apart the idvisitdate to get the CO.IDs isolated
+```{r : identifying lost participants}
+duplicateassessments$id <- sapply(strsplit(duplicateassessments$idvisitdate," "), `[`, 1)
+duplicateassessments$visitdate<- sapply(strsplit(duplicateassessments$idvisitdate," "), `[`, 2)
+
+toremovelostparticipants <- participantsnoduplicates$CO.ID
+
+lostparticipants <- NA
+lostparticipants <- subset(participants, !CO.ID %in% toremovelostparticipants)
+
+write.csv(lostparticipants, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/lostparticipants.csv", row.names = F)
+```
+
+```{r : making participantsnoduplicates}
+idvisitstoremove <- duplicateassessments$idvisitdate
+
+participantsnoduplicates <- subset(participants, !coid_assedate %in% idvisitstoremove)
+
+freqcheck <- as.data.frame(freq(participantsnoduplicates$coid_assedate))
+freqcheck <- rownames_to_column(freqcheck, var="idvisitdate")
+freqcheck <- freqcheck[freqcheck$idvisitdate != c("Total", "<NA>"),]
+```
+
+
+*********************************
+*********************************
+------Analysis------
+
+
+
+
+
+
+
+
+
+
+
+
