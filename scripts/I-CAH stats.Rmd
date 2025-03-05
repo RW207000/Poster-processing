@@ -39,6 +39,11 @@ participants_longitudinal <- merge(participants, longitudinal, by = "CO.ID",
               all = TRUE)
 
 participants_longitudinal$Date.of.Assessment <- as.Date(participants_longitudinal$Date.of.Assessment, format = "%d/%m/%Y")
+
+#make unique identifier
+participants_longitudinal$CO.ID_assessment_date <- paste0(participants_longitudinal$CO.ID, participants_longitudinal$Date.of.Assessment)
+
+write.csv(participants_longitudinal, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/participants_longitudinal.csv", row.names = F)
 ```
 
 Before you start analysing data, remove any duplicated entries.
@@ -158,7 +163,21 @@ write.csv(centre_stats, file = "C:/Users/md1rwe/Documents/Data extractions from 
 ------Minimal dataset subset------
 Let's make a minimal data subset which we can use in subsequent analysis
 Minimal data set includes:
+Age, sex, medication, height, weight, BMI, blood pressure, biomarkers.
+~ Also includes co-morbidities, fertility/pregnancy/menstrual info and genotype but these aren't provided in I-CAH tranches so cannot be investigated here.
 
+We'll start by subsetting columns from participants_longitudinal. This contains: sex, height, weight, BMI, blood pressures (systolic and diastolic). Age can be calculated from DOB and assessment date
+```{r : subsetting from participants_longitudinal}
+minimal_data <- select(participants_longitudinal, c("CO.ID_assessment_date", "CO.ID", "Centre.ID.x", "Date.of.Birth.y", "Sex.at.birth.x", "Date.of.Assessment", "Weight..kg.", "Height..cm.", "BMI", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure"))
+
+minimal_data <- minimal_data %>%
+  rename("Centre ID" = "Centre.ID.x",
+         "DOB" = "Date.of.Birth.y",
+         "Sex" = "Sex.at.birth.x",
+         "Date of assessment" = "Date.of.Assessment",
+         "Weight.Kg" = "Weight..kg.",
+         "Height.cm" = "Height..cm.")
+```
 
 
 
