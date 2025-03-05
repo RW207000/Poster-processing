@@ -4,11 +4,14 @@ author: "R.Welch"
 date: "2025-03-05"
 output: html_document
 ---
+
+CODE TO BE USED ALONGSIDE 'CLEANED SCRIPT'
+
 This code is used to provide stats on the data extracted from I-CAH.
 - Three time frames are wanted: Nov22-23, Nov23-24, Nov24-Feb25
 
 For each time frame, and per centre, this code will provide the following:
-- missing data (% and number of patients) for each element of the minimal dataset (outlined on CaHASE2 webpage)
+- missing data (% and number of patients) for each element of the minimal dataset (outlined on CaHASE2 webpage: https://www.endocrinology.org/clinical-practice/research-projects/cahase-2/)
 - How many patients have >1 entry (and create subset data frame to show these patients/records)
 
 ```{r setup, include=FALSE}
@@ -103,7 +106,7 @@ lostparticipants <- subset(participants, !CO.ID %in% toremovelostparticipants)
 write.csv(lostparticipants, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/lostparticipants.csv", row.names = F)
 ```
 
-```{r : making participantsnoduplicates}
+```{r : making participantsnoduplicates, include=FALSE}
 idvisitstoremove <- duplicateassessments$idvisitdate
 
 participantsnoduplicates <- subset(participants, !coid_assedate %in% idvisitstoremove)
@@ -116,7 +119,48 @@ freqcheck <- freqcheck[freqcheck$idvisitdate != c("Total", "<NA>"),]
 
 *********************************
 *********************************
-------Analysis------
+------Basic stats------
+
+```{r : list of centres}
+centres <-as.data.frame(unique(participants_longitudinal$Centre.ID.x))
+centres <- centres %>%
+  rename("Centre ID" = "unique(participants_longitudinal$Centre.ID.x)")
+
+print("There are")
+length(centres$`Centre ID`)
+print("centres")
+```
+
+```{r : patients per centre}
+patients_per_centre <- participants_longitudinal %>%
+  group_by(Centre.ID.x) %>%
+  summarise(n_unique(CO.ID)) %>%
+  as.data.frame() %>%
+   rename("number of patients" = "n_unique(CO.ID)")
+```
+
+```{r : visits per centre}
+visits_per_centre <- participants_longitudinal %>%
+  group_by(Centre.ID.x) %>%
+  summarise(n = n()) %>%
+  rename("number of visits" = "n")
+```
+
+```{r : combining patient and visit stats}
+centre_stats <- full_join(patients_per_centre, visits_per_centre, by = "Centre.ID.x")
+
+write.csv(centre_stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/centre_stats.csv", row.names = F)
+```
+
+
+*********************************
+*********************************
+------Minimal dataset subset------
+Let's make a minimal data subset which we can use in subsequent analysis
+Minimal data set includes:
+
+
+
 
 
 
