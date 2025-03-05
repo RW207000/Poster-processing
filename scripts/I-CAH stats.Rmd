@@ -211,6 +211,27 @@ labs_wide$Date <- as.Date(labs_wide$Date, format = "%d/%m/%Y")
 labs_wide$CO.ID_assessment_date <- paste0(labs_wide$CO.ID, labs_wide$Date)
 ```
 
+Let's see which assessment records (i.e.: CO.ID_assessment_date s) in meds_wide are NOT in longitudinal (i.e.: which participants there is NO meds data for)
+```{r : checking meds and labs records match participants_longitudinal}
+entry_records <- unique(participants_longitudinal$CO.ID_assessment_date)
+meds_check <- subset(meds_wide, !CO.ID_assessment_date %in% entry_records)
+labs_check <- subset(labs_wide, !CO.ID_assessment_date %in% entry_records)
+
+test2 <- anti_join(meds_wide, meds_check, by = "CO.ID_assessment_date")
+test <- anti_join(labs_wide, labs_check, by = "CO.ID_assessment_date")
+```
+
+
+
+```{r}
+meds_assessment_ids <-as.data.frame(meds_wide$assessment_id)
+labs_assessment_ids <-as.data.frame(labs_wide$Assessment.ID)
+
+assessment_ids <- merge(meds_assessment_ids, labs_assessment_ids)
+```
+
+
+
 
 
 

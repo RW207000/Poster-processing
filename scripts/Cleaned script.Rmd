@@ -591,6 +591,8 @@ names(labs_wide) <- gsub(x = names(labs_wide), pattern = ".x",
                         replacement = ".value")
 names(labs_wide) <- gsub(x = names(labs_wide), pattern = ".y",
                         replacement = ".interpretation")
+
+write.csv(labs_wide, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/labs_wide.csv", row.names = F)
 ```
 
 Reorder columns so that lab value and interpretation are next to eachother.
