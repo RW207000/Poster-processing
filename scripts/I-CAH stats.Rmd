@@ -179,6 +179,15 @@ minimal_data <- minimal_data %>%
          "Height.cm" = "Height..cm.")
 ```
 
+Let's calculate age at assessment - this is an element of the minimal data set which is not provided/available in raw I-CAH data.
+```{r : calculating age at assessment}
+# start by making DOB and assessment date date formats
+minimal_data$DOB <- as.Date(minimal_data$DOB, format = "%d/%m/%Y")
+minimal_data$`Date of assessment` <- as.Date(minimal_data$`Date of assessment`, format = "%d/%m/%Y")
+
+minimal_data$`Age at assessment (years)` <- interval(minimal_data$DOB, minimal_data$`Date of assessment`) / years(1)
+minimal_data$`Age at assessment (years)` <- round(minimal_data$`Age at assessment (years)`, digits = 0)
+```
 
 
 
