@@ -197,7 +197,8 @@ Let's just read in widened frames generated from 'cleaned script' processing cod
 
 ```{r : reading in meds_wide}
 meds_wide <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/meds_wide.csv", header=T, na.strings= c("", "NA"))
-meds_wide$Date.of.Assessment_1 <- as.Date(meds_wide$Date.of.Assessment_1, format = "%d/%m/%Y")
+# format date
+meds_wide$Date.of.Assessment_1 <- as.Date(meds_wide$Date.of.Assessment_1, format = "%Y-%m-%d")
 
 # let's add unique identifier
 meds_wide$CO.ID_assessment_date <- paste0(meds_wide$CO.ID, meds_wide$Date.of.Assessment_1)
@@ -205,6 +206,7 @@ meds_wide$CO.ID_assessment_date <- paste0(meds_wide$CO.ID, meds_wide$Date.of.Ass
 
 ```{r : reading in labs_wide}
 labs_wide <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/labs_wide.csv", header=T, na.strings= c("", "NA"))
+# format date
 labs_wide$Date <- as.Date(labs_wide$Date, format = "%d/%m/%Y")
 
 # let's add unique identifier
