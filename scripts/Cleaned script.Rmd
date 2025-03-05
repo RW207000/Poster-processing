@@ -33,7 +33,6 @@ labs <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025
 # labs$assessment_date <- as.Date(labs$assessment_date, format = "%d/%m/%Y")
 
 longitudinal <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/Longitudinal data 24.02.2025.csv", header=T, na.strings= c("", "NA"))
-
 ```
 
 *********************************
@@ -45,7 +44,6 @@ Notes:
 - don't need 'First Presentation' data (not relevant info)
 - don't need ae for this processing
 - might need to merge dataframes...
-
 
 ```{r : merging data frames}
 test <- merge(participants, longitudinal, by = "CO.ID",
@@ -745,21 +743,6 @@ blood_pressures$Class [blood_pressures$Systolic.Blood.Pressure >= 180 &  blood_p
 write.csv(blood_pressures, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/blood_pressures.csv", row.names = F)
 ```
 
-
-```{r : adding BMI data to labs_wide}
-# labs_wide$coid_assedate <- paste(labs_wide$CO.ID, labs_wide$assessment_date)
-# labs_wide$BMI <- NULL
-# 
-# ii <- 1
-# for (ID in labs_wide$coid_assedate) {
-#   BMI <- participantsnoduplicates$BMI...CAH.Longitudinal.Data[participantsnoduplicates$coid_assedate == ID]
-#   if(!is_empty(BMI)){
-#   labs_wide$BMI [ii] <- BMI}
-#   ii <- ii + 1
-# }
-```
-
-
 *********************************
 *********************************
 ------Biomarkers------
@@ -835,7 +818,6 @@ OHP2022_2023stats <- OHP2022_2023stats [order(OHP2022_2023stats$Centre.ID),]
 write.csv(OHP2023_2024stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/OHP2023_2024stats.csv", row.names = F)
 write.csv(OHP2022_2023stats, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/OHP2022_2023stats.csv", row.names = F)
 ```
-
 
 ```{r : andostenedione, include=FALSE}
 Andoframe <- select(labs_wide, c("Centre.ID", "assessment_id", "assessment_date", "andostenedione.value", "andostenedione.interpretation"))
@@ -933,12 +915,6 @@ table(Reninframe$unit)
 #NEED CLARIFICATION ON UNITS AND SUBSEQUENT STANDARDISATION.
 ```
 
-Let's make one table of all the processed biomarkers
-Try re-naming columns in ^ tables to reflect biomarker
-```{r}
-
-```
-
 *********************************
 
 ```{r}
@@ -957,6 +933,9 @@ Try re-naming columns in ^ tables to reflect biomarker
 # variablesinfo <- full_join(structure, variableproportionst, by = "Var1")
 # names(variablesinfo)[names(variablesinfo)=="Length"] <- "n_visits"
 ```
+
+
+
 
 Let's have a look now at data completeness.
 In the dataframes made here, 0 = completely full, 1 = completely empty.
