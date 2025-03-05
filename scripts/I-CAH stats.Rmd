@@ -202,6 +202,20 @@ meds_wide$Date.of.Assessment_1 <- as.Date(meds_wide$Date.of.Assessment_1, format
 
 # let's add unique identifier
 meds_wide$CO.ID_assessment_date <- paste0(meds_wide$CO.ID, meds_wide$Date.of.Assessment_1)
+
+# identify and remove any duplicates
+med_duplicates <- as.data.frame(freq(meds_wide$CO.ID_assessment_date))
+med_duplicates <- rownames_to_column(med_duplicates, var="CO.ID_assessment_date")
+med_duplicates <- med_duplicates[med_duplicates$CO.ID_assessment_date != c("Total", "<NA>"),]
+med_duplicates <- med_duplicates[-c(3:6)]
+med_duplicates <- med_duplicates %>%
+  filter(Freq>1)
+
+med_to_remove <- med_duplicates$CO.ID_assessment_date
+meds_wide_no_duplicates <- subset(meds_wide, !CO.ID_assessment_date %in% med_to_remove)
+
+# all frequencies here should be 1
+med_freq_check <- as.data.frame(freq(meds_wide_no_duplicates$CO.ID_assessment_date))
 ```
 
 ```{r : reading in labs_wide}
@@ -211,6 +225,20 @@ labs_wide$Date <- as.Date(labs_wide$Date, format = "%d/%m/%Y")
 
 # let's add unique identifier
 labs_wide$CO.ID_assessment_date <- paste0(labs_wide$CO.ID, labs_wide$Date)
+
+# identify and remove any duplicates
+lab_duplicates <- as.data.frame(freq(labs_wide$CO.ID_assessment_date))
+lab_duplicates <- rownames_to_column(lab_duplicates, var="CO.ID_assessment_date")
+lab_duplicates <- lab_duplicates[lab_duplicates$CO.ID_assessment_date != c("Total", "<NA>"),]
+lab_duplicates <- lab_duplicates[-c(3:6)]
+lab_duplicates <- lab_duplicates %>%
+  filter(Freq>1)
+
+lab_to_remove <- lab_duplicates$CO.ID_assessment_date
+labs_wide_no_duplicates <- subset(labs_wide, !CO.ID_assessment_date %in% lab_to_remove)
+
+# all frequencies here should be 1
+lab_freq_check <- as.data.frame(freq(labs_wide_no_duplicates$CO.ID_assessment_date))
 ```
 
 
