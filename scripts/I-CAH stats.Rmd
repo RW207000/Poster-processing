@@ -227,27 +227,16 @@ meds_wide_no_duplicates <- subset(meds_wide, !CO.ID_assessment_date %in% med_to_
 med_freq_check <- as.data.frame(freq(meds_wide_no_duplicates$CO.ID_assessment_date))
 ```
 
-```{r : reading in labs_wide}
-labs_wide <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/labs_wide.csv", header=T, na.strings= c("", "NA"))
+From lab frame, we just need specific CAH biomarkers (17-OHP, andro, testosterone, glucose, and plasma renin).
+I'll read in CAH_biomarkers from 'cleaned script' outputs to save time here, and I'll call it 'biomarkers' so it doesn't get confusing.
+```{r : reading in lab data}
+biomarkers <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/CAH_biomarkers.csv", header=T, na.strings= c("", "NA"))
+
 # format date
-labs_wide$Date <- as.Date(labs_wide$Date, format = "%d/%m/%Y")
+biomarkers$Date <- as.Date(biomarkers$Date, format = "%d/%m/%Y")
 
-# let's add unique identifier
-labs_wide$CO.ID_assessment_date <- paste0(labs_wide$CO.ID, labs_wide$Date)
-
-# identify and remove any duplicates
-lab_duplicates <- as.data.frame(freq(labs_wide$CO.ID_assessment_date))
-lab_duplicates <- rownames_to_column(lab_duplicates, var="CO.ID_assessment_date")
-lab_duplicates <- lab_duplicates[lab_duplicates$CO.ID_assessment_date != c("Total", "<NA>"),]
-lab_duplicates <- lab_duplicates[-c(3:6)]
-lab_duplicates <- lab_duplicates %>%
-  filter(Freq>1)
-
-lab_to_remove <- lab_duplicates$CO.ID_assessment_date
-labs_wide_no_duplicates <- subset(labs_wide, !CO.ID_assessment_date %in% lab_to_remove)
-
-# all frequencies here should be 1
-lab_freq_check <- as.data.frame(freq(labs_wide_no_duplicates$CO.ID_assessment_date))
+# add unique identifier
+biomarkers$CO.ID_assessment_date <- paste0(biomarkers$CO.ID, biomarkers$Date)
 ```
 
 
