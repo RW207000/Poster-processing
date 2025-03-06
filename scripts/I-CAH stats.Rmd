@@ -104,6 +104,10 @@ Biomarkers will come from 'labs_wide'.
 Let's just read in widened frames generated from 'cleaned script' processing code.
 ```{r : reading in meds_wide}
 meds_wide <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/meds_wide.csv", header=T, na.strings= c("", "NA"))
+```
+
+
+```{r}
 # format date
 meds_wide$Date.of.Assessment_1 <- as.Date(meds_wide$Date.of.Assessment_1, format = "%Y-%m-%d")
 
@@ -124,6 +128,26 @@ meds_wide_no_duplicates <- subset(meds_wide, !CO.ID_assessment_date %in% med_to_
 # all frequencies here should be 1
 med_freq_check <- as.data.frame(freq(meds_wide_no_duplicates$CO.ID_assessment_date))
 ```
+
+In meds_wide, some medicine entries are 'other'. This needs to be rectified. I did this by hand in excel for now and will read in the resultant csv file here to use.
+```{r}
+# instances of 'other' in medicine names need to be rectified. I have done this manually in excel for now.
+
+adjusted_medication_names <- read.csv("C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/data/adjusted_medication_names.csv", header=T, na.strings= c("", "NA"))
+adjusted_medication_names$Date <- as.Date(adjusted_medication_names$Date, format = "%d/%m/%Y")
+adjusted_medication_names$CO.ID_assessment_date <- paste0(adjusted_medication_names$CO.ID, adjusted_medication_names$Date)
+
+# now need to link to meds_wide_no_duplicates
+meds_wide_adj <- left_join(meds_wide_no_duplicates, adjusted_medication_names, by = c("CO.ID_assessment_date"))
+
+# now let's tidy up the columns
+# replace other with actual medication
+meds_wide_adj$Medicine_1.x <- meds_wide_adj$Medicine_1.y
+meds_wide_adj$Medicine_2.x <- meds_wide_adj$Medicine_2.y
+meds_wide_adj$Medicine_3.x <- meds_wide_adj$Medicine_3.y  
+meds_wide_adj$Medicine_4.x <- meds_wide_adj$Medicine_4.y
+```
+
 
 From lab frame, we just need specific CAH biomarkers (17-OHP, andro, testosterone, glucose, and plasma renin).
 I'll read in CAH_biomarkers from 'cleaned script' outputs to save time here, and I'll call it 'biomarkers' so it doesn't get confusing.
@@ -154,28 +178,41 @@ biomarker_freq_check <- as.data.frame(freq(biomarkers_no_duplicates$CO.ID_assess
 Let's now join meds_wide and biomarkers to minimal dataset.
 The length of minimal data set should NOT INCREASE upon joining.
 ```{r : joining meds_wide and minimal dataset}
-minimal_data <- left_join(minimal_data, meds_wide_no_duplicates, by = c("CO.ID_assessment_date"))
-minimal_data <- left_join(minimal_data, biomarkers_no_duplicates, by = c("CO.ID_assessment_date"))
+all_data <- left_join(participants_longitudinal, meds_wide_adj, by = c("CO.ID_assessment_date"))
+all_data <- left_join(all_data, biomarkers_no_duplicates, by = c("CO.ID_assessment_date"))
 
-write.csv(minimal_data, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/minimal_data.csv", row.names = FALSE, na = "")
+write.csv(all_data, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data.csv", row.names = FALSE, na = "")
 ```
 
 
 To determine data completeness, add in % missing. The value here represents the % of data which is MISSING/EMPTY for each column.
+0 = NONE MISSING, 1 = ALL MISSING.
 ```{r : percent missing}
 pcntMissing <- function(col) length(col[col == ""])/length(col)
 
-missing_data_per_centre <- minimal_data %>%
-  group_by(`Centre ID`) %>%
+missing_data_per_centre <- all_data %>%
+  group_by(Centre.ID.x) %>%
   summarise(across(everything(), pcntMissing)) %>%
   round(., digits = 2)
 
-
-missing_participant_data_2023_2024 <- participant_data_2023_2024 %>%
-  group_by(Centre.ID) %>%
+missing_data_per_centre_Feb25_Nov24 <- all_data %>%
+  group_by(Centre.ID.x) %>%
+  filter(Date.of.Assessment <= "2025-07-02"  & Date.of.Assessment > "2024-01-11") %>%
   summarise(across(everything(), pcntMissing)) %>%
-  round(., digits = 2)  
+  round(., digits = 2)
+  
+missing_data_per_centre_Nov24_Nov23 <- all_data %>%
+  group_by(Centre.ID.x) %>%
+  filter(Date.of.Assessment <= "2024-01-11"  & Date.of.Assessment > "2023-01-11") %>%
+  summarise(across(everything(), pcntMissing)) %>%
+  round(., digits = 2)
+  
 
+missing_data_per_centre_Nov23_Nov22 <- all_data %>%
+  group_by(Centre.ID.x) %>%
+  filter(Date.of.Assessment <= "2023-01-11"  & Date.of.Assessment > "2022-01-11") %>%
+  summarise(across(everything(), pcntMissing)) %>%
+  round(., digits = 2)
 ```
 
 
