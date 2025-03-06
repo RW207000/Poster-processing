@@ -172,20 +172,19 @@ write.csv(centre_stats, file = "C:/Users/md1rwe/Documents/Data extractions from 
 ------Minimal dataset subset------
 Let's make a minimal data subset which we can use in subsequent analysis
 Minimal data set includes:
-Age, sex, medication, height, weight, BMI, blood pressure, biomarkers.
-~ Also includes co-morbidities, fertility/pregnancy/menstrual info and genotype but these aren't provided in I-CAH tranches so cannot be investigated here.
+Age, sex, medication, height, weight, BMI, blood pressure, biomarkers, genotype, co-morbidities and fertility/pubity/menstrual information.
 
-We'll start by subsetting columns from participants_longitudinal. This contains: sex, height, weight, BMI, blood pressures (systolic and diastolic). Age can be calculated from DOB and assessment date
+We'll start by subsetting columns from participants_longitudinal. This contains: sex, height, weight, BMI, blood pressures (systolic and diastolic). Age can be calculated from DOB and assessment date.
 ```{r : subsetting from participants_longitudinal}
-minimal_data <- select(participants_longitudinal, c("CO.ID_assessment_date", "CO.ID", "Centre.ID.x", "Date.of.Birth.y", "Sex.at.birth.x", "Date.of.Assessment", "Weight..kg.", "Height..cm.", "BMI", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure"))
+# minimal_data <- select(participants_longitudinal, c("CO.ID_assessment_date", "CO.ID", "Centre.ID.x", "Date.of.Birth.y", "Sex.at.birth.x", "Date.of.Assessment", "Weight..kg.", "Height..cm.", "BMI", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure"))
 
-minimal_data <- minimal_data %>%
-  rename("Centre ID" = "Centre.ID.x",
-         "DOB" = "Date.of.Birth.y",
-         "Sex" = "Sex.at.birth.x",
-         "Date of assessment" = "Date.of.Assessment",
-         "Weight.Kg" = "Weight..kg.",
-         "Height.cm" = "Height..cm.")
+# minimal_data <- minimal_data %>%
+#   rename("Centre ID" = "Centre.ID.x",
+#          "DOB" = "Date.of.Birth.y",
+#          "Sex" = "Sex.at.birth.x",
+#          "Date of assessment" = "Date.of.Assessment",
+#          "Weight.Kg" = "Weight..kg.",
+#          "Height.cm" = "Height..cm.")
 ```
 
 Let's calculate age at assessment - this is an element of the minimal data set which is not provided/available in raw I-CAH data.
@@ -257,9 +256,32 @@ The length of minimal data set should NOT INCREASE upon joining.
 ```{r : joining meds_wide and minimal dataset}
 minimal_data <- left_join(minimal_data, meds_wide_no_duplicates, by = c("CO.ID_assessment_date"))
 minimal_data <- left_join(minimal_data, biomarkers_no_duplicates, by = c("CO.ID_assessment_date"))
+
+write.csv(minimal_data, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/minimal_data.csv", row.names = FALSE, na = "")
 ```
-- to do next:
-  left-join meds and biomarkers to minimal data
+
+
+To determine data completeness, add in % missing. The value here represents the % of data which is MISSING/EMPTY for each column.
+```{r : percent missing}
+pcntMissing <- function(col) length(col[col == ""])/length(col)
+
+missing_data_per_centre <- minimal_data %>%
+  group_by(`Centre ID`) %>%
+  summarise(across(everything(), pcntMissing)) %>%
+  round(., digits = 2)
+
+
+missing_participant_data_2023_2024 <- participant_data_2023_2024 %>%
+  group_by(Centre.ID) %>%
+  summarise(across(everything(), pcntMissing)) %>%
+  round(., digits = 2)  
+
+```
+
+
+
+
+
 
 
 Notes:
