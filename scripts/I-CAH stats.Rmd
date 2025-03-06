@@ -58,78 +58,6 @@ write.csv(participants_longitudinal, file = "C:/Users/md1rwe/Documents/Data extr
 Before you start analysing data, remove any duplicated entries.
 Duplicated entries occur when data has been entered twice. Usually with one or two fields differing between entries, indicating that one of the entries is incorrect and has subsequently been 'replaced' by a correct entry. You can't tell which entry is the correct one, so for safety we will remove all duplicated entries.
 
-*********************************
-*********************************
-------Removing duplicates------
-
-Making unique identifier for each assessment by combining co-id and assessment date.
-```{r : making new unique identifier}
-participants$coid_assedate <- paste(participants$CO.ID, participants$Date...CAH.Longitudinal.Data, sep = " ")
-```
-
-Checking for any duplicate entries (i.e.: any duplicates in the newly made unique identifier).
-'list of duplicates frame' gives output of duplicate candidates
-```{r : checking for duplicates}
-duplicates <- freq(participants$coid_assedate)
-duplicatesframe <- as.data.frame(duplicates)
-duplicatesframe <- rownames_to_column(duplicatesframe, var="idvisitdate")
-```
-
-Now to remove any non-duplicates in 'duplicatesframe' to show us what the actual duplicates are and how many times they've been duplicated
-```{r : isolating duplicate occurances, include= FALSE}
-duplicatesframe <- duplicatesframe[duplicatesframe$idvisitdate != c("Total", "<NA>"),]
-duplicatesframe <- duplicatesframe[-c(3:6)]
-
-duplicateassessments <- duplicatesframe %>%
-  filter(Freq>1)
-```
-
-Make a new vector to use as list of duplicate entries to remove from participants dataframe and then remove duplicated entries from participants dataframe with a subset.
-Because there's no way of knowing which duplicate entry is the correct one, all duplicates are removed.
-```{r : removing duplicates, include=FALSE}
-idvisitstoremove <- duplicateassessments$idvisitdate
-
-participantsnoduplicates <- subset(participants, !coid_assedate %in% idvisitstoremove)
-
-freqcheck <- as.data.frame(freq(participantsnoduplicates$coid_assedate))
-freqcheck <- rownames_to_column(freqcheck, var="idvisitdate")
-freqcheck <- freqcheck[freqcheck$idvisitdate != c("Total", "<NA>"),]
-# freqcheck
-```
-
-Making a dataframe of the removed duplicate assessment entries
-```{r : removed duplicates}
-toremove <- duplicateassessments$idvisitdate
-removedrecords <- subset(participants, coid_assedate %in% toremove)
-
-write.csv(removedrecords, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/removed_records", row.names = F)
-```
-
-Because I've removed all duplicate assessment entries, we might have lost participant/s if their only entry is one of these removed duplicates.
-This will show which participants, if any, have been lost.
-We need to split apart the idvisitdate to get the CO.IDs isolated
-```{r : identifying lost participants}
-duplicateassessments$id <- sapply(strsplit(duplicateassessments$idvisitdate," "), `[`, 1)
-duplicateassessments$visitdate<- sapply(strsplit(duplicateassessments$idvisitdate," "), `[`, 2)
-
-toremovelostparticipants <- participantsnoduplicates$CO.ID
-
-lostparticipants <- NA
-lostparticipants <- subset(participants, !CO.ID %in% toremovelostparticipants)
-
-write.csv(lostparticipants, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/lostparticipants.csv", row.names = F)
-```
-
-```{r : making participantsnoduplicates, include=FALSE}
-idvisitstoremove <- duplicateassessments$idvisitdate
-
-participantsnoduplicates <- subset(participants, !coid_assedate %in% idvisitstoremove)
-
-freqcheck <- as.data.frame(freq(participantsnoduplicates$coid_assedate))
-freqcheck <- rownames_to_column(freqcheck, var="idvisitdate")
-freqcheck <- freqcheck[freqcheck$idvisitdate != c("Total", "<NA>"),]
-```
-
 
 *********************************
 *********************************
@@ -169,36 +97,8 @@ write.csv(centre_stats, file = "C:/Users/md1rwe/Documents/Data extractions from 
 
 *********************************
 *********************************
-------Minimal dataset subset------
-Let's make a minimal data subset which we can use in subsequent analysis
-Minimal data set includes:
-Age, sex, medication, height, weight, BMI, blood pressure, biomarkers, genotype, co-morbidities and fertility/pubity/menstrual information.
-
-We'll start by subsetting columns from participants_longitudinal. This contains: sex, height, weight, BMI, blood pressures (systolic and diastolic). Age can be calculated from DOB and assessment date.
-```{r : subsetting from participants_longitudinal}
-# minimal_data <- select(participants_longitudinal, c("CO.ID_assessment_date", "CO.ID", "Centre.ID.x", "Date.of.Birth.y", "Sex.at.birth.x", "Date.of.Assessment", "Weight..kg.", "Height..cm.", "BMI", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure"))
-
-# minimal_data <- minimal_data %>%
-#   rename("Centre ID" = "Centre.ID.x",
-#          "DOB" = "Date.of.Birth.y",
-#          "Sex" = "Sex.at.birth.x",
-#          "Date of assessment" = "Date.of.Assessment",
-#          "Weight.Kg" = "Weight..kg.",
-#          "Height.cm" = "Height..cm.")
-```
-
-Let's calculate age at assessment - this is an element of the minimal data set which is not provided/available in raw I-CAH data.
-```{r : calculating age at assessment}
-# start by making DOB and assessment date date formats
-minimal_data$DOB <- as.Date(minimal_data$DOB, format = "%d/%m/%Y")
-minimal_data$`Date of assessment` <- as.Date(minimal_data$`Date of assessment`, format = "%d/%m/%Y")
-
-minimal_data$`Age at assessment (years)` <- interval(minimal_data$DOB, minimal_data$`Date of assessment`) / years(1)
-minimal_data$`Age at assessment (years)` <- round(minimal_data$`Age at assessment (years)`, digits = 0)
-```
-
-At this point, we have: Age, sex, height, weight, BMI, blood pressure
-Need to add in: medication and biomarkers.
+------Making large dataset------
+Include all data from lonitudinal frame, join medication and biomarker info.
 Medication will come from 'meds_wide'.
 Biomarkers will come from 'labs_wide'.
 Let's just read in widened frames generated from 'cleaned script' processing code.
