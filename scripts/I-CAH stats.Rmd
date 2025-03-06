@@ -10,12 +10,21 @@ CODE TO BE USED ALONGSIDE 'CLEANED SCRIPT'
 This code is used to provide stats on the data extracted from I-CAH.
 - Three time frames are wanted: Nov22-23, Nov23-24, Nov24-Feb25
 
+Want to create a minimal dataset.
+
 For each time frame, and per centre, this code will provide the following:
 - missing data (% and number of patients) for each element of the minimal dataset (outlined on CaHASE2 webpage: https://www.endocrinology.org/clinical-practice/research-projects/cahase-2/)
 - How many patients have >1 entry (and create subset data frame to show these patients/records)
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+libraries
+```{r : reading libraries, include= FALSE}
+packages <- c("tidyverse", "readxl", "dplyr", "magrittr", "mixtools", "emmeans", "readr","data.table", "lubridate", "ggplot2", "skimr", "ggstatsplot","summarytools", "knitr", "here", "ggthemes", "Amelia", "tidyr", "naniar", "stringr", "janitor")
+
+lapply(packages, library, character.only = TRUE)
 ```
 
 Reading in data.
@@ -242,7 +251,8 @@ lab_freq_check <- as.data.frame(freq(labs_wide_no_duplicates$CO.ID_assessment_da
 ```
 
 
-
+- to do next:
+  left-join meds and labs to minimal data
 
 
 
