@@ -109,7 +109,6 @@ visits_stats_Feb25_Nov24 <- visits_per_patient_per_centre_Feb25_Nov24 %>%
 write.csv(visits_per_patient_per_centre_Feb25_Nov24, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_per_patient_per_centre_Feb25_Nov24.csv", row.names = F)
 
 write.csv(visits_stats_Feb25_Nov24, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_stats_Feb25_Nov24.csv", row.names = F)
-
 #
 
 visits_per_patient_per_centre_Nov24_Nov23 <- participants_longitudinal %>%
@@ -313,7 +312,20 @@ write.csv(missing_data_per_centre_before_Nov22, file = "C:/Users/md1rwe/Document
 
 ```
 
+```{r}
+participants_per_centre_Feb25_Nov24 <- all_data_Feb25_Nov24 %>%
+  group_by(Centre.ID.x) %>%
+  summarise(n_unique(CO.ID.x))
 
+participants_per_centre_Nov24_Nov23 <- all_data_Nov24_Nov23 %>%
+  group_by(Centre.ID.x) %>%
+  summarise(n_unique(CO.ID.x))
+
+participants_per_centre_Nov23_Nov22 <- all_data_Nov23_Nov22 %>%
+  group_by(Centre.ID.x) %>%
+  summarise(n_unique(CO.ID.x))
+
+```
 
 
 
