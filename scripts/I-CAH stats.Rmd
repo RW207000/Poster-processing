@@ -95,26 +95,65 @@ visits_per_patient_per_centre <- participants_longitudinal %>%
 
 write.csv(visits_per_patient_per_centre, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_per_patient_per_centre.csv", row.names = F)
 
+#
+
 visits_per_patient_per_centre_Feb25_Nov24 <- participants_longitudinal %>%
   filter(Date.of.Assessment <= "2025-07-02"  & Date.of.Assessment > "2024-01-11") %>%
   group_by(CO.ID, Centre.ID.x) %>%
   summarise(n = n())
+
+visits_stats_Feb25_Nov24 <- visits_per_patient_per_centre_Feb25_Nov24 %>%
+  group_by(Centre.ID.x) %>%
+  summarise(sum(n))
+
+write.csv(visits_per_patient_per_centre_Feb25_Nov24, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_per_patient_per_centre_Feb25_Nov24.csv", row.names = F)
+
+write.csv(visits_stats_Feb25_Nov24, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_stats_Feb25_Nov24.csv", row.names = F)
+
+#
 
 visits_per_patient_per_centre_Nov24_Nov23 <- participants_longitudinal %>%
   filter(Date.of.Assessment <= "2024-01-11"  & Date.of.Assessment > "2023-01-11") %>%
   group_by(CO.ID, Centre.ID.x) %>%
   summarise(n = n())
 
+visits_stats_Nov24_Nov23 <- visits_per_patient_per_centre_Nov24_Nov23 %>%
+  group_by(Centre.ID.x) %>%
+  summarise(sum(n))
+
+write.csv(visits_per_patient_per_centre_Nov24_Nov23, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_per_patient_per_centre_Nov24_Nov23.csv", row.names = F)
+
+write.csv(visits_stats_Nov24_Nov23, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_stats_Nov24_Nov23.csv", row.names = F)
+
+#
+
 visits_per_patient_per_centre_Nov23_Nov22 <- participants_longitudinal %>%
   filter(Date.of.Assessment <= "2023-01-11"  & Date.of.Assessment > "2022-01-11") %>%
   group_by(CO.ID, Centre.ID.x) %>%
   summarise(n = n())
 
-visits_per_patient_per_centre_Nov23_Nov22 <- participants_longitudinal %>%
+visits_stats_Nov23_Nov22 <- visits_per_patient_per_centre_Nov23_Nov22 %>%
+  group_by(Centre.ID.x) %>%
+  summarise(sum(n))
+
+write.csv(visits_per_patient_per_centre_Nov23_Nov22, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_per_patient_per_centre_Nov23_Nov22.csv", row.names = F)
+
+write.csv(visits_stats_Nov23_Nov22, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_stats_Nov23_Nov22.csv", row.names = F)
+
+#
+
+visits_per_patient_per_centre_before_Nov22 <- participants_longitudinal %>%
   filter(Date.of.Assessment >= "2022-01-11") %>%
   group_by(CO.ID, Centre.ID.x) %>%
   summarise(n = n())
 
+visits_stats_before_Nov22 <- visits_per_patient_per_centre_before_Nov22 %>%
+  group_by(Centre.ID.x) %>%
+  summarise(sum(n))
+
+write.csv(visits_per_patient_per_centre_before_Nov22, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_per_patient_per_centre_before_Nov22.csv", row.names = F)
+
+write.csv(visits_stats_before_Nov22, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_stats_before_Nov22.csv", row.names = F)
 ```
 
 ```{r : combining patient and visit stats}
