@@ -88,6 +88,35 @@ visits_per_centre <- participants_longitudinal %>%
   rename("number of visits" = "n")
 ```
 
+```{r : visits per patient per centre}
+visits_per_patient_per_centre <- participants_longitudinal %>%
+  group_by(CO.ID, Centre.ID.x) %>%
+  summarise(n=n())
+
+write.csv(visits_per_patient_per_centre, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/visits_per_patient_per_centre.csv", row.names = F)
+
+visits_per_patient_per_centre_Feb25_Nov24 <- participants_longitudinal %>%
+  filter(Date.of.Assessment <= "2025-07-02"  & Date.of.Assessment > "2024-01-11") %>%
+  group_by(CO.ID, Centre.ID.x) %>%
+  summarise(n = n())
+
+visits_per_patient_per_centre_Nov24_Nov23 <- participants_longitudinal %>%
+  filter(Date.of.Assessment <= "2024-01-11"  & Date.of.Assessment > "2023-01-11") %>%
+  group_by(CO.ID, Centre.ID.x) %>%
+  summarise(n = n())
+
+visits_per_patient_per_centre_Nov23_Nov22 <- participants_longitudinal %>%
+  filter(Date.of.Assessment <= "2023-01-11"  & Date.of.Assessment > "2022-01-11") %>%
+  group_by(CO.ID, Centre.ID.x) %>%
+  summarise(n = n())
+
+visits_per_patient_per_centre_Nov23_Nov22 <- participants_longitudinal %>%
+  filter(Date.of.Assessment >= "2022-01-11") %>%
+  group_by(CO.ID, Centre.ID.x) %>%
+  summarise(n = n())
+
+```
+
 ```{r : combining patient and visit stats}
 centre_stats <- full_join(patients_per_centre, visits_per_centre, by = "Centre.ID.x")
 
@@ -247,6 +276,12 @@ write.csv(missing_data_per_centre_before_Nov22, file = "C:/Users/md1rwe/Document
 
 
 
+
+
+```{r}
+print("Script complete")
+
+```
 
 
 
