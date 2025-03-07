@@ -328,7 +328,6 @@ participants_per_centre_Nov23_Nov22 <- all_data_Nov23_Nov22 %>%
 ```
 
 
-
 ```{r}
 print("Script complete")
 
