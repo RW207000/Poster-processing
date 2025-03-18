@@ -340,6 +340,8 @@ Notes:
 - Duplicates in meds_wide and biomarkers have been identified based on their CO.ID assessment date. Duplicate candidates typically have different assessment IDs (which I assume     implies two separate entries were made to record the same visit). It is not deducible with 100% certainty which of the duplicate entries is the correct one. To avoid guess-work on this matter, I have removed all duplicated entries. A list of duplicated CO.ID assessment dates is available for both meds_wide and biomarker frames.
 
 
-
+- Formula for GC dose per BSA if you've only got weight (NOT HEIGHT):
+    (4.688*POWER((weight*1000),(0.8168-(0.0154)*LOG(weight*1000))))/10000
+^ assuming weight is in kg here
 
 
