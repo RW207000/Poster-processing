@@ -98,7 +98,7 @@ write.csv(visits_per_patient_per_centre, file = "C:/Users/md1rwe/Documents/Data 
 #
 
 visits_per_patient_per_centre_Feb25_Nov24 <- participants_longitudinal %>%
-  filter(Date.of.Assessment <= "2025-07-02"  & Date.of.Assessment > "2024-01-11") %>%
+  filter(Date.of.Assessment <= "2025-02-07"  & Date.of.Assessment > "2024-11-30") %>%
   group_by(CO.ID, Centre.ID.x) %>%
   summarise(n = n())
 
@@ -112,7 +112,7 @@ write.csv(visits_stats_Feb25_Nov24, file = "C:/Users/md1rwe/Documents/Data extra
 #
 
 visits_per_patient_per_centre_Nov24_Nov23 <- participants_longitudinal %>%
-  filter(Date.of.Assessment <= "2024-01-11"  & Date.of.Assessment > "2023-01-11") %>%
+  filter(Date.of.Assessment <= "2024-11-30"  & Date.of.Assessment > "2023-11-30") %>%
   group_by(CO.ID, Centre.ID.x) %>%
   summarise(n = n())
 
@@ -127,7 +127,7 @@ write.csv(visits_stats_Nov24_Nov23, file = "C:/Users/md1rwe/Documents/Data extra
 #
 
 visits_per_patient_per_centre_Nov23_Nov22 <- participants_longitudinal %>%
-  filter(Date.of.Assessment <= "2023-01-11"  & Date.of.Assessment > "2022-01-11") %>%
+  filter(Date.of.Assessment <= "2023-11-30"  & Date.of.Assessment > "2022-11-30") %>%
   group_by(CO.ID, Centre.ID.x) %>%
   summarise(n = n())
 
@@ -142,7 +142,7 @@ write.csv(visits_stats_Nov23_Nov22, file = "C:/Users/md1rwe/Documents/Data extra
 #
 
 visits_per_patient_per_centre_before_Nov22 <- participants_longitudinal %>%
-  filter(Date.of.Assessment >= "2022-01-11") %>%
+  filter(Date.of.Assessment >= "2022-11-30") %>%
   group_by(CO.ID, Centre.ID.x) %>%
   summarise(n = n())
 
@@ -330,7 +330,7 @@ participants_per_centre_Nov23_Nov22 <- all_data_Nov23_Nov22 %>%
 
 Select specific columns to make minimal dataset
 ```{r}
-minimal_dataset_columns <- c("Centre.ID.x", "CO.ID.x", "Date.of.Birth.x", "Sex.at.birth.x", "Associated.conditions.x", "Age", "Weight..kg.", "Height..cm.", "BMI", "BSA", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure", "Diabetes.mellitus.type.1", "Diabetes.mellitus.type.1.note", "Diabetes.Mellitus.Type.2", "Diabetes.Mellitus.Type.2.note", "Hypertension", "Hypertension.note", "Thyroid.Disease", "Thyroid.Disease.note", "Osteoporosis", "Osteoporosis.note", "Stroke", "Stroke.note", "Cardiovascular.Disease", "Cardiovascular.Disease.note", "Smoking", "Smoking.note", "Anaemia", "Anaemia.note", "Depression", "Depression.note", "Anxiety", "Anxiety.note", "Psychosis", "Psychosis.note", "Other.Mental.Health.Problems", "Other.Mental.Health.Problems.note", "Joint.Hypermobility", "Joint.Hypermobility.note", "Other", "Other.note","Testicular.volume.left..ml.", "Testicular.volume.right..ml.", "Testicular.texture", "Evidence.of.TART", "Fertility.desired", "Fertility.attempted", "Sperm.storage", "Number.of.offspring", "History.of.assisted.conception", "Breast.stage", "Menarche", "Age.at.first.menstruation", "Regular.menstrual.cycle", "Number.of.pregnancies.in.the.past", "Number.of.live.births", "Notes",
+minimal_dataset_columns <- c("Centre.ID.x", "CO.ID.x", "Date.of.Assessment", "Date.of.Birth.x", "Sex.at.birth.x", "Associated.conditions.x", "Age", "Weight..kg.", "Height..cm.", "BMI", "BSA", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure", "Diabetes.mellitus.type.1", "Diabetes.mellitus.type.1.note", "Diabetes.Mellitus.Type.2", "Diabetes.Mellitus.Type.2.note", "Hypertension", "Hypertension.note", "Thyroid.Disease", "Thyroid.Disease.note", "Osteoporosis", "Osteoporosis.note", "Stroke", "Stroke.note", "Cardiovascular.Disease", "Cardiovascular.Disease.note", "Smoking", "Smoking.note", "Anaemia", "Anaemia.note", "Depression", "Depression.note", "Anxiety", "Anxiety.note", "Psychosis", "Psychosis.note", "Other.Mental.Health.Problems", "Other.Mental.Health.Problems.note", "Joint.Hypermobility", "Joint.Hypermobility.note", "Other", "Other.note","Testicular.volume.left..ml.", "Testicular.volume.right..ml.", "Testicular.texture", "Evidence.of.TART", "Fertility.desired", "Fertility.attempted", "Sperm.storage", "Number.of.offspring", "History.of.assisted.conception", "Breast.stage", "Menarche", "Age.at.first.menstruation", "Regular.menstrual.cycle", "Number.of.pregnancies.in.the.past", "Number.of.live.births", "Notes",
 "Medicine_1.x", "Dose_1", "Unit_1", "Standardised.doses_1", "dose_time_hours_1",
 "Medicine_2.x", "Dose_2", "Unit_2", "Standardised.doses_2", "dose_time_hours_2",
 "Medicine_3.x", "Dose_3", "Unit_3", "Standardised.doses_3", "dose_time_hours_3",
@@ -345,6 +345,25 @@ write.csv(minimal_dataset, file = "C:/Users/md1rwe/Documents/Data extractions fr
 
 ```
 
+
+split minimal data set into timeframes
+```{r}
+minimal_dataset_Feb25_Nov24 <- minimal_dataset %>%
+  filter(Date.of.Assessment <= "2025-02-07"  & Date.of.Assessment > "2024-11-30")
+
+minimal_dataset_Nov24_Nov23 <- minimal_dataset %>%
+  filter(Date.of.Assessment <= "2024-11-30"  & Date.of.Assessment > "2023-11-30")
+
+minimal_dataset_Nov23_Nov22 <- minimal_dataset %>%
+  filter(Date.of.Assessment <= "2023-11-30"  & Date.of.Assessment > "2022-11-30")
+
+
+write.csv(minimal_dataset_Feb25_Nov24, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/minimal_dataset_Feb25_Nov24.csv", row.names = FALSE, na = "")
+
+write.csv(minimal_dataset_Nov24_Nov23, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/minimal_dataset_Nov24_Nov23.csv", row.names = FALSE, na = "")
+
+write.csv(minimal_dataset_Nov23_Nov22, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/minimal_dataset_Nov23_Nov22.csv", row.names = FALSE, na = "")
+```
 
 use this for applying minimal dataset columns  =  labs_wide <- labs_wide[, labsorder]
 
@@ -364,4 +383,4 @@ Notes:
     (4.688*POWER((weight*1000),(0.8168-(0.0154)*LOG(weight*1000))))/10000
 ^ assuming weight is in kg here
 
-
+- left join visits per centre together to combine all timeframes
