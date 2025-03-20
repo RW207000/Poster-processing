@@ -328,6 +328,26 @@ participants_per_centre_Nov23_Nov22 <- all_data_Nov23_Nov22 %>%
 ```
 
 
+Select specific columns to make minimal dataset
+```{r}
+minimal_dataset_columns <- c("Centre.ID.x", "CO.ID.x", "Date.of.Birth.x", "Sex.at.birth.x", "Associated.conditions.x", "Age", "Weight..kg.", "Height..cm.", "BMI", "BSA", "Systolic.Blood.Pressure", "Diastolic.Blood.Pressure", "Diabetes.mellitus.type.1", "Diabetes.mellitus.type.1.note", "Diabetes.Mellitus.Type.2", "Diabetes.Mellitus.Type.2.note", "Hypertension", "Hypertension.note", "Thyroid.Disease", "Thyroid.Disease.note", "Osteoporosis", "Osteoporosis.note", "Stroke", "Stroke.note", "Cardiovascular.Disease", "Cardiovascular.Disease.note", "Smoking", "Smoking.note", "Anaemia", "Anaemia.note", "Depression", "Depression.note", "Anxiety", "Anxiety.note", "Psychosis", "Psychosis.note", "Other.Mental.Health.Problems", "Other.Mental.Health.Problems.note", "Joint.Hypermobility", "Joint.Hypermobility.note", "Other", "Other.note","Testicular.volume.left..ml.", "Testicular.volume.right..ml.", "Testicular.texture", "Evidence.of.TART", "Fertility.desired", "Fertility.attempted", "Sperm.storage", "Number.of.offspring", "History.of.assisted.conception", "Breast.stage", "Menarche", "Age.at.first.menstruation", "Regular.menstrual.cycle", "Number.of.pregnancies.in.the.past", "Number.of.live.births", "Notes",
+"Medicine_1.x", "Dose_1", "Unit_1", "Standardised.doses_1", "dose_time_hours_1",
+"Medicine_2.x", "Dose_2", "Unit_2", "Standardised.doses_2", "dose_time_hours_2",
+"Medicine_3.x", "Dose_3", "Unit_3", "Standardised.doses_3", "dose_time_hours_3",
+"Medicine_4.x", "Dose_4", "Unit_4", "Standardised.doses_4",
+"total_standardised_daily_dose_1_1",
+"Medicine_1.y", "Medicine_2.y", "Medicine_3.y", "Medicine_4.y",
+"Assessment.ID.y", "Date.y", "X17.OHP.value", "X17.OHP.unit", "X17.OHP.interpretation", "Androstenedione.value", "Androstenedione.unit", "Androstenedione.interpretation", "Renin.value", "Renin.unit", "Renin.interpretation", "Renin.plasma.activity", "Total.testosterone.value", "Total.testosterone.unit", "Total.testosterone.interpretation", "Glucose.value", "Glucose.interpretation")
+
+minimal_dataset <- all_data[, minimal_dataset_columns]
+
+write.csv(minimal_dataset, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/minimal_data_set.csv", row.names = FALSE, na = "")
+
+```
+
+
+use this for applying minimal dataset columns  =  labs_wide <- labs_wide[, labsorder]
+
 ```{r}
 print("Script complete")
 
