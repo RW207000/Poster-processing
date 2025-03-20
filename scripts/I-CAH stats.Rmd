@@ -254,19 +254,19 @@ write.csv(all_data, file = "C:/Users/md1rwe/Documents/Data extractions from I-CA
 Now we'll split all_data into the four timeframes
 ```{r}
 all_data_Feb25_Nov24 <- all_data %>%
-  filter(Date.of.Assessment <= "2025-07-02"  & Date.of.Assessment > "2024-01-11")
+  filter(Date.of.Assessment <= "2025-02-07"  & Date.of.Assessment > "2024-11-30")
 write.csv(all_data_Feb25_Nov24, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/all_data_Feb25_Nov24.csv", row.names = FALSE, na = "")
 
 all_data_Nov24_Nov23 <- all_data %>%
-  filter(Date.of.Assessment <= "2024-01-11"  & Date.of.Assessment > "2023-01-11")
+  filter(Date.of.Assessment <= "2024-11-30"  & Date.of.Assessment > "2023-11-30")
 write.csv(all_data_Nov24_Nov23, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/all_data_Nov24_Nov23.csv", row.names = FALSE, na = "")
 
 all_data_Nov23_Nov22 <- all_data %>%
-  filter(Date.of.Assessment <= "2023-01-11"  & Date.of.Assessment > "2022-01-11")
+  filter(Date.of.Assessment <= "2023-11-30"  & Date.of.Assessment > "2022-11-30")
 write.csv(all_data_Nov23_Nov22, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/all_data_Nov23_Nov22.csv", row.names = FALSE, na = "")
 
 all_data_before_Nov22 <- all_data %>%
-  filter(Date.of.Assessment >= "2022-01-11")
+  filter(Date.of.Assessment >= "2022-11-30")
 write.csv(all_data_before_Nov22, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/all_data_before_Nov22.csv", row.names = FALSE, na = "")
 ```
 
@@ -284,28 +284,28 @@ write.csv(missing_data_per_centre, file = "C:/Users/md1rwe/Documents/Data extrac
 
 missing_data_per_centre_Feb25_Nov24 <- all_data %>%
   group_by(Centre.ID.x) %>%
-  filter(Date.of.Assessment <= "2025-07-02"  & Date.of.Assessment > "2024-01-11") %>%
+  filter(Date.of.Assessment <= "2025-02-07"  & Date.of.Assessment > "2024-11-30") %>%
   summarise(across(everything(), pcntMissing)) %>%
   round(., digits = 2)
 write.csv(missing_data_per_centre_Feb25_Nov24, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/missing_data_per_centre_Feb25_Nov24.csv", row.names = FALSE, na = "")
   
 missing_data_per_centre_Nov24_Nov23 <- all_data %>%
   group_by(Centre.ID.x) %>%
-  filter(Date.of.Assessment <= "2024-01-11"  & Date.of.Assessment > "2023-01-11") %>%
+  filter(Date.of.Assessment <= "2024-11-30"  & Date.of.Assessment > "2023-11-30") %>%
   summarise(across(everything(), pcntMissing)) %>%
   round(., digits = 2)
 write.csv(missing_data_per_centre_Nov24_Nov23, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/missing_data_per_centre_Nov24_Nov23.csv", row.names = FALSE, na = "")
 
 missing_data_per_centre_Nov23_Nov22 <- all_data %>%
   group_by(Centre.ID.x) %>%
-  filter(Date.of.Assessment <= "2023-01-11"  & Date.of.Assessment > "2022-01-11") %>%
+  filter(Date.of.Assessment <= "2023-11-30"  & Date.of.Assessment > "2022-11-30") %>%
   summarise(across(everything(), pcntMissing)) %>%
   round(., digits = 2)
 write.csv(missing_data_per_centre_Nov23_Nov22, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/missing_data_per_centre_Nov23_Nov22.csv", row.names = FALSE, na = "")
 
 missing_data_per_centre_before_Nov22 <- all_data %>%
   group_by(Centre.ID.x) %>%
-  filter(Date.of.Assessment > "2022-01-11") %>%
+  filter(Date.of.Assessment > "2022-11-30") %>%
   summarise(across(everything(), pcntMissing)) %>%
   round(., digits = 2)
 write.csv(missing_data_per_centre_before_Nov22, file = "C:/Users/md1rwe/Documents/Data extractions from I-CAH/Feb 2025/I-CAH_data_Feb_2025/outputs/all_data/missing_data_per_centre_before_Nov22.csv", row.names = FALSE, na = "")
